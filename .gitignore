@@ -1,0 +1,20 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+.env.local
+
+# Python / Django
+__pycache__/
+*.py[cod]
+backend/db.sqlite3
+backend/*.sqlite3
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Local/editor files
+.DS_Store
+Thumbs.db

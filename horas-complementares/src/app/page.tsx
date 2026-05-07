@@ -1,0 +1,71 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useStore } from '@/hooks/useStore'
+import { TabId } from '@/lib/types'
+import Navbar from '@/components/Navbar'
+import Dashboard from '@/components/Dashboard'
+import AddCertificate from '@/components/AddCertificate'
+import Certificates from '@/components/Certificates'
+import Settings from '@/components/Settings'
+import AuthGate from '@/components/AuthGate'
+import CategoryDetails from '@/components/CategoryDetails'
+import SyncStatus from '@/components/SyncStatus'
+
+export default function App() {
+  const [tab, setTab] = useState<TabId>('dashboard')
+  const [selectedCategoryId, setSelectedCategoryId] = useState(0)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const store = useStore()
+
+  useEffect(() => {
+    const saved = localStorage.getItem('hc-theme')
+    const initial = saved === 'dark' || saved === 'light' ? saved : 'light'
+    setTheme(initial)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    try { localStorage.setItem('hc-theme', theme) } catch { /* ignore */ }
+  }, [theme])
+
+  const openCategory = (categoryId: number) => {
+    setSelectedCategoryId(categoryId)
+    setTab('category')
+  }
+
+  if (!store.hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-slate-400 text-sm font-medium">Carregando...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <AuthGate store={store}>
+      <div className="min-h-screen bg-[#f0f2f8]">
+        <Navbar
+          activeTab={tab}
+          onTabChange={setTab}
+          displayName={store.state.student.name || store.authUser?.email}
+          theme={theme}
+          onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        />
+        <SyncStatus store={store} />
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+          <div className="view-enter">
+            {tab === 'dashboard'    && <Dashboard     store={store} onNavigate={setTab} onCategorySelect={openCategory} />}
+            {tab === 'add'          && <AddCertificate store={store} onSuccess={() => setTab('certificates')} />}
+            {tab === 'certificates' && <Certificates  store={store} />}
+            {tab === 'settings'     && <Settings      store={store} />}
+            {tab === 'category'     && <CategoryDetails categoryId={selectedCategoryId} store={store} onNavigate={setTab} />}
+          </div>
+        </main>
+      </div>
+    </AuthGate>
+  )
+}
