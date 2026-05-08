@@ -73,16 +73,12 @@ function scopeStateToProfile(
 
 // ── Usage computation ─────────────────────────────────────────────
 function computeUsage(certs: Certificate[]) {
-  const used: Record<number, number> = {}
   const out: Record<number, { effectiveHours: number; excessHours: number }> = {}
-  for (const c of [...certs].sort((a, b) => a.id - b.id)) {
+  for (const c of certs) {
     const act = ACTIVITIES.find(a => a.id === c.activityId)
     const limit = act?.maxHours ?? c.hours
-    const already = used[c.activityId] ?? 0
-    const available = Math.max(0, limit - already)
-    const eff = Math.min(c.hours, available)
+    const eff = Math.min(c.hours, limit)
     const exc = Math.max(0, c.hours - eff)
-    used[c.activityId] = already + eff
     out[c.id] = { effectiveHours: eff, excessHours: exc }
   }
   return out
