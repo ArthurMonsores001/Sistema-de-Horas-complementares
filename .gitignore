@@ -24,3 +24,8 @@ pnpm-debug.log*
 # Local/editor files
 .DS_Store
 Thumbs.db
+
+# Local tooling / multi-worktree
+.worktrees/
+.kiro/
+AGENTS.md
