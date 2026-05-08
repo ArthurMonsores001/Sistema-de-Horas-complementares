@@ -52,7 +52,6 @@ export function exportStudentExcelReport(state: AppState) {
     ['Matrícula', student.registration || 'Não informada'],
     ['Curso', student.course || 'Não informado'],
     ['CPF', student.cpf || ''],
-    ['RG', student.rg || ''],
     [],
     ['Indicador', 'Valor'],
     ['Total necessário', required],

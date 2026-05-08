@@ -13,7 +13,6 @@ export interface DbProfile {
   registration: string
   name: string
   cpf: string
-  rg: string
   course: string
   total_required: number
   updated_at: string

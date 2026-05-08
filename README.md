@@ -8,14 +8,13 @@ Facilitar o controle e acompanhamento das horas complementares exigidas pela gra
 
 ## O que o sistema faz
 
-- **Cadastro de estudantes** — cada conta gerencia um ou mais perfis de matrícula com dados pessoais (nome, CPF, RG, curso e carga horária exigida).
+- **Cadastro de estudantes** — cada conta gerencia um ou mais perfis de matrícula com dados pessoais (nome, CPF, curso e carga horária exigida).
 - **Registro de certificados** — adição de atividades com descrição, horas, data, local e anexo (PDF/imagem). O sistema analisa automaticamente o arquivo e sugere a categoria correspondente.
-- **Categorias de atividades** — as horas são organizadas em 5 grupos conforme as regras da Univassouras:
+- **Categorias de atividades** — as horas são organizadas em 4 grupos conforme as regras da Univassouras:
   - Cidadania
   - Científico-Acadêmico
   - Capacitação, Empreendedorismo e Inovação
   - Atividades Complementares Externas
-  - Avaliação CPA
 - **Dashboard** — visão geral do progresso total e por categoria, com indicação de horas efetivas e excedentes por atividade.
 - **Sincronização** — dados salvos no Supabase, isolados por conta de usuário. Suporte a backup e restauração local (JSON) e exportação para Excel.
 

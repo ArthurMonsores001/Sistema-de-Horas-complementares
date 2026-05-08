@@ -48,7 +48,6 @@ const CAT_STYLES = [
   { fill: '#10b981', track: '#d1fae5', badge: 'bg-emerald-50 text-emerald-700', border: 'border-l-emerald-400' },
   { fill: '#f59e0b', track: '#fef3c7', badge: 'bg-amber-50 text-amber-700', border: 'border-l-amber-400'   },
   { fill: '#8b5cf6', track: '#ede9fe', badge: 'bg-violet-50 text-violet-700', border: 'border-l-violet-400' },
-  { fill: '#ec4899', track: '#fce7f3', badge: 'bg-pink-50 text-pink-700', border: 'border-l-pink-400' },
 ]
 
 function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCardProps) {
@@ -309,7 +308,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
       </div>
 
       {/* Category Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {CATEGORIES.map((_, i) => (
           <CategoryCard
             key={i}

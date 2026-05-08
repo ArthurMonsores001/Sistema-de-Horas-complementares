@@ -37,16 +37,9 @@ export const CATEGORIES: Category[] = [
     softText: 'text-violet-600',
     icon: '🌐',
   },
-  {
-    id: 4,
-    name: 'Avaliação CPA',
-    shortName: 'CPA',
-    color: '#ec4899',
-    softBg: 'bg-pink-50',
-    softText: 'text-pink-600',
-    icon: '📝',
-  },
 ]
+
+export const SELECTABLE_CATEGORIES = CATEGORIES
 
 export const ACTIVITIES: Activity[] = [
   // ── CIDADANIA (categoryId: 0) ─────────────────────────────────────
@@ -160,8 +153,4 @@ export const ACTIVITIES: Activity[] = [
     keywords: ['etnico','racial','diversidade etnica','cultura afro','relacoes raciais'] },
   { id: 52, categoryId: 3, name: 'Projeto Rondon', maxHours: 100,
     keywords: ['projeto rondon','rondon'] },
-
-  // ── AVALIAÇÃO CPA (categoryId: 4) ───────────────────────────────
-  { id: 53, categoryId: 4, name: 'Avaliação de período anterior', maxHours: 25,
-    keywords: ['avaliacao cpa','cpa','avaliacao institucional','periodo anterior','autoavaliacao'] },
 ]

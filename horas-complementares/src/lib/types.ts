@@ -7,7 +7,6 @@ export interface Student {
   name: string
   registration: string
   cpf: string
-  rg: string
   course: string
   totalRequired: number
 }

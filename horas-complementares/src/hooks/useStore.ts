@@ -23,7 +23,6 @@ const DEFAULT_STUDENT: Student = {
   name: '',
   registration: '',
   cpf: '',
-  rg: '',
   course: 'Engenharia',
   totalRequired: 120,
 }

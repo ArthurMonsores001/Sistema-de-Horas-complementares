@@ -40,7 +40,6 @@ export default function AuthGate({ store, children }: AuthGateProps) {
           name: name.trim(),
           registration: registration.trim(),
           cpf: '',
-          rg: '',
           course: course.trim(),
           totalRequired: 120,
         }, user)

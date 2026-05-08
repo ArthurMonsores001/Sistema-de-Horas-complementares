@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, Loader2, WifiOff } from 'lucide-react'
+import { AlertTriangle, Loader2, WifiOff } from 'lucide-react'
 import { StoreType } from '@/hooks/useStore'
 
 interface SyncStatusProps {
@@ -40,17 +40,6 @@ export default function SyncStatus({ store }: SyncStatusProps) {
             <span className="font-semibold">Não foi salvo online.</span>
             <span className="ml-1">{store.apiError || 'Verifique sua conexão ou as policies do Supabase.'}</span>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (store.apiStatus === 'online') {
-    return (
-      <div className="border-b border-emerald-100 bg-emerald-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 text-sm text-emerald-700">
-          <CheckCircle2 size={15} className="flex-shrink-0" />
-          <span className="font-medium">Sincronizado no Supabase.</span>
         </div>
       </div>
     )

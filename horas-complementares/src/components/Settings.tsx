@@ -10,6 +10,14 @@ interface SettingsProps {
   store: StoreType
 }
 
+function formatCpf(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
 export default function Settings({ store }: SettingsProps) {
   const [student, setStudent] = useState<Student>(store.state.student)
   const [profileToLoad, setProfileToLoad] = useState(store.activeRegistration)
@@ -25,7 +33,11 @@ export default function Settings({ store }: SettingsProps) {
   const updateField = (field: keyof Student, value: string) => {
     setStudent(prev => ({
       ...prev,
-      [field]: field === 'totalRequired' ? Math.max(1, Number(value) || 1) : value,
+      [field]: field === 'totalRequired'
+        ? Math.max(1, Number(value) || 1)
+        : field === 'cpf'
+          ? formatCpf(value)
+          : value,
     }))
   }
 
@@ -211,12 +223,13 @@ export default function Settings({ store }: SettingsProps) {
 
         <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Perfil Acadêmico</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(['name', 'registration', 'cpf', 'rg', 'course'] as const).map(field => (
+          {(['name', 'registration', 'cpf', 'course'] as const).map(field => (
             <label key={field} className="block">
               <span className="block text-sm font-medium text-gray-700 mb-1.5 capitalize">
-                {field === 'name' ? 'Nome' : field === 'registration' ? 'Matrícula' : field === 'cpf' ? 'CPF' : field === 'rg' ? 'RG' : 'Curso'}
+                {field === 'name' ? 'Nome' : field === 'registration' ? 'Matrícula' : field === 'cpf' ? 'CPF' : 'Curso'}
               </span>
               <input value={student[field]} onChange={e => updateField(field, e.target.value)}
+                maxLength={field === 'cpf' ? 14 : undefined}
                 className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
             </label>
           ))}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { ACTIVITIES, CATEGORIES } from '@/lib/data'
+import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
 import { analyzeCertificateText } from '@/lib/certificateAnalyzer'
@@ -12,7 +12,6 @@ const CAT_STYLES = [
   { fill: '#10b981', badge: 'bg-emerald-50 text-emerald-700' },
   { fill: '#f59e0b', badge: 'bg-amber-50 text-amber-700' },
   { fill: '#8b5cf6', badge: 'bg-violet-50 text-violet-700' },
-  { fill: '#ec4899', badge: 'bg-pink-50 text-pink-700' },
 ]
 
 // ── PDF extraction ────────────────────────────────────────────────
@@ -392,7 +391,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               >
                 <option value="">Selecione a categoria...</option>
-                {CATEGORIES.map(cat => (
+                {SELECTABLE_CATEGORIES.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
                 ))}
               </select>

@@ -43,7 +43,6 @@ function dbProfileToStudent(row: DbProfile): Student {
     name: row.name,
     registration: row.registration,
     cpf: row.cpf,
-    rg: row.rg,
     course: row.course,
     totalRequired: row.total_required,
   }
@@ -84,7 +83,6 @@ export async function upsertProfile(student: Student, userId: string): Promise<D
       registration: student.registration.trim().toLowerCase(),
       name: student.name,
       cpf: student.cpf,
-      rg: student.rg,
       course: student.course,
       total_required: student.totalRequired,
       updated_at: new Date().toISOString(),

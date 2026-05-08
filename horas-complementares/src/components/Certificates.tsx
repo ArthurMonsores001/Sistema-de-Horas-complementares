@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ACTIVITIES, CATEGORIES } from '@/lib/data'
+import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { Certificate, CertificateAttachment } from '@/lib/types'
 import { StoreType } from '@/hooks/useStore'
 import { AlertTriangle, Calendar, Check, Clock, Download, Eye, ExternalLink, FileText, MapPin, Pencil, Search, Trash2, X } from 'lucide-react'
@@ -11,7 +11,6 @@ const CAT_STYLES = [
   { badge: 'bg-emerald-50 text-emerald-700', border: 'border-l-emerald-400' },
   { badge: 'bg-amber-50 text-amber-700', border: 'border-l-amber-400' },
   { badge: 'bg-violet-50 text-violet-700', border: 'border-l-violet-400' },
-  { badge: 'bg-pink-50 text-pink-700', border: 'border-l-pink-400' },
 ]
 
 function formatDate(date: string) {
@@ -258,7 +257,7 @@ export default function Certificates({ store }: CertificatesProps) {
             className="w-full min-h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           >
             <option value="all">Todas as categorias</option>
-            {CATEGORIES.map(category => (
+            {SELECTABLE_CATEGORIES.map(category => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
@@ -385,7 +384,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="">Selecione a categoria...</option>
-                    {CATEGORIES.map(category => (
+                    {SELECTABLE_CATEGORIES.map(category => (
                       <option key={category.id} value={category.id}>{category.icon} {category.name}</option>
                     ))}
                   </select>

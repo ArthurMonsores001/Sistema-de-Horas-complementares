@@ -81,12 +81,6 @@ const TYPE_RULES: CertificateTypeRule[] = [
     preferredCategoryId: 2,
     keywords: ['empreendedorismo', 'inovação', 'inovacao', 'startup', 'desafio inovação', 'desafio inovacao'],
   },
-  {
-    id: 'avaliacao_cpa',
-    label: 'Avaliação CPA',
-    preferredCategoryId: 4,
-    keywords: ['avaliacao cpa', 'avaliação cpa', 'cpa', 'comissao propria de avaliacao', 'comissão própria de avaliação', 'avaliacao institucional', 'avaliação institucional', 'periodo anterior', 'período anterior'],
-  },
 ]
 
 function normalize(text: string) {
@@ -116,7 +110,9 @@ export function analyzeCertificateText(rawText: string): CertificateAnalysis {
   }).sort((a, b) => b.score - a.score)
 
   const bestType = typeScores[0]
-  const activityScores = ACTIVITIES.map(activity => {
+  const activityScores = ACTIVITIES
+    .filter(activity => activity.categoryId !== 4)
+    .map(activity => {
     const hits = keywordHits(text, activity.keywords)
     const typeBonus = bestType?.rule.preferredCategoryId === activity.categoryId ? 0.35 : 0
     return { activity, hits, score: hits.length + typeBonus }
