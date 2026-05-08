@@ -3,7 +3,7 @@
 import { CATEGORIES, ACTIVITIES } from '@/lib/data'
 import { Certificate, TabId } from '@/lib/types'
 import { StoreType } from '@/hooks/useStore'
-import { TrendingUp, Clock, ChevronRight, Award } from 'lucide-react'
+import { TrendingUp, Clock, ChevronRight, Award, AlertTriangle } from 'lucide-react'
 
 // ── Ring Progress (SVG) ─────────────────────────────────────────
 function RingProgress({ value, max }: { value: number; max: number }) {
@@ -182,6 +182,15 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
   const name = state.student.name || null
   const firstName = name?.split(' ')[0] ?? null
 
+  const MANDATORY_CATEGORY_IDS = [0, 1, 2, 3]
+  const certUsage = store.getCertificateUsage()
+  const missingCategories = MANDATORY_CATEGORY_IDS.filter(catId => {
+    const actIds = ACTIVITIES.filter(a => a.categoryId === catId).map(a => a.id)
+    return !state.certificates.some(
+      c => actIds.includes(c.activityId) && (certUsage[c.id]?.effectiveHours ?? 0) > 0
+    )
+  })
+
   const actsWithHours = ACTIVITIES.filter(a => getActivitySubmitted(a.id) > 0)
   const recent = [...state.certificates].sort((a, b) => b.id - a.id).slice(0, 5)
   const maxCatEff = Math.max(1, ...CATEGORIES.map(c => getCategoryEffective(c.id)))
@@ -201,6 +210,32 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
             className="flex items-center gap-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
           >
             Configurar <ChevronRight size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Missing mandatory categories banner */}
+      {missingCategories.length > 0 && (
+        <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-4">
+          <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-500" />
+          <div className="flex-1">
+            <div className="font-semibold text-sm">Categorias obrigatórias incompletas</div>
+            <div className="text-xs text-amber-700 mt-0.5 mb-2">
+              Para validar suas horas você precisa de ao menos 1 certificado em cada área obrigatória. Faltando:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {missingCategories.map(catId => (
+                <span key={catId} className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">
+                  {CATEGORIES[catId].icon} {CATEGORIES[catId].shortName}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('add')}
+            className="flex-shrink-0 text-xs font-semibold bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Adicionar certificado
           </button>
         </div>
       )}
