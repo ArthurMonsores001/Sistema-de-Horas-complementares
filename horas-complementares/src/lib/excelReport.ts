@@ -13,21 +13,14 @@ function formatDate(date: string) {
 }
 
 function certificateUsage(certificates: Certificate[]) {
-  const usedByActivity: Record<number, number> = {}
   const usage: Record<number, { effectiveHours: number; excessHours: number }> = {}
-
-  for (const cert of [...certificates].sort((a, b) => a.id - b.id)) {
+  for (const cert of certificates) {
     const activity = ACTIVITIES.find(item => item.id === cert.activityId)
     const limit = activity?.maxHours ?? cert.hours
-    const alreadyUsed = usedByActivity[cert.activityId] ?? 0
-    const available = Math.max(0, limit - alreadyUsed)
-    const effectiveHours = Math.min(cert.hours, available)
+    const effectiveHours = Math.min(cert.hours, limit)
     const excessHours = Math.max(0, cert.hours - effectiveHours)
-
-    usedByActivity[cert.activityId] = alreadyUsed + effectiveHours
     usage[cert.id] = { effectiveHours, excessHours }
   }
-
   return usage
 }
 

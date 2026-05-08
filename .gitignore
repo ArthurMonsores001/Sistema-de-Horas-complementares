@@ -24,7 +24,3 @@ pnpm-debug.log*
 # Local/editor files
 .DS_Store
 Thumbs.db
-
-# Git worktrees and local tooling
-.worktrees/
-.kiro/
