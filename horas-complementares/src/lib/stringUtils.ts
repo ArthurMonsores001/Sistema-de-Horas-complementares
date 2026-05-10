@@ -9,15 +9,17 @@ export function stringSimilarity(str1: string, str2: string): number {
   if (s1 === s2) return 1
   if (s1.length === 0 || s2.length === 0) return 0
 
-  const longer = s1.length > s2.length ? s1 : s2
-  const shorter = s1.length > s2.length ? s2 : s1
-
-  const editDistance = getEditDistance(shorter, longer)
-  return (longer.length - editDistance) / longer.length
+  const editDistance = getEditDistance(s1, s2)
+  return 1 - (editDistance / Math.max(s1.length, s2.length))
 }
 
+/**
+ * Calcula edit distance usando Wagner-Fischer algorithm
+ * Retorna número de edições (inserção, deleção, substituição) necessárias
+ * para transformar s1 em s2. Complexidade: O(m*n)
+ */
 function getEditDistance(s1: string, s2: string): number {
-  const costs: number[] = []
+  const costs: number[] = Array(s2.length + 1)
   for (let i = 0; i <= s1.length; i++) {
     let lastValue = i
     for (let j = 0; j <= s2.length; j++) {
