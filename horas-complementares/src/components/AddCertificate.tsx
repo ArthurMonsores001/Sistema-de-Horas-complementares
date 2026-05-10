@@ -5,6 +5,7 @@ import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
 import { analyzeCertificateText } from '@/lib/certificateAnalyzer'
+import { checkDuplicate } from '@/lib/duplicateChecker'
 import { Upload, Sparkles, CheckCircle, AlertTriangle, X, FileText, Image } from 'lucide-react'
 
 const CAT_STYLES = [
@@ -235,6 +236,32 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar duplicata
+    const certificatesList = store.state?.certificates ?? []
+    const duplicateCheck = checkDuplicate(
+      {
+        activityId: parseInt(form.activityId),
+        description: form.description.trim(),
+        hours: parseInt(form.hours) || 0,
+        date: form.date,
+        location: form.location.trim(),
+        attachment: attachment ?? undefined,
+      },
+      certificatesList
+    )
+
+    if (duplicateCheck.isDuplicate) {
+      const reason = duplicateCheck.reason === 'file_hash' ? 'mesmo arquivo' :
+                     duplicateCheck.reason === 'description_similarity' ? 'descrição similar' :
+                     'mesma atividade no mesmo dia'
+      setStatus({
+        type: 'warn',
+        msg: `⚠ Certificado duplicado detectado (${reason})! Você já enviou um certificado em ${duplicateCheck.matchingCertificate?.date}. Descrição: "${duplicateCheck.matchingCertificate?.description}"`
+      })
+      return
+    }
+
     if (willExceed) {
       setShowLimitDialog(true)
       return
