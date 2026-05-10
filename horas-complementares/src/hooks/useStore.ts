@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { AppState, Certificate, Student, StudentProfile } from '@/lib/types'
 import { ACTIVITIES } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
+import { checkDuplicate } from '@/lib/duplicateChecker'
 import {
   AuthUser,
   getSession,
@@ -220,6 +221,15 @@ export function useStore() {
 
   const addCertificate = useCallback(
     async (cert: Omit<Certificate, 'id' | 'createdAt' | 'updatedAt'>) => {
+      // Validar duplicata ANTES de adicionar
+      const duplicateCheck = checkDuplicate(cert, state.certificates)
+
+      if (duplicateCheck.isDuplicate) {
+        // Armazenar erro no estado para o UI exibir
+        setApiError(`Certificado duplicado! Você já enviou um certificado similar em ${duplicateCheck.matchingCertificate?.date}`)
+        return // Não adiciona certificado
+      }
+
       // Optimistic: assign a temp negative id so the UI updates instantly
       const tempId = -(Date.now())
       const now = new Date().toISOString()
