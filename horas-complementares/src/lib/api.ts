@@ -119,6 +119,7 @@ function dbCertToLocal(row: DbCertificate): Certificate {
       name: row.attachment_name ?? '',
       type: row.attachment_type ?? '',
       size: row.attachment_size ?? 0,
+      fileHash: row.file_hash ?? undefined,
       storagePath: row.storage_path ?? undefined,
     } : undefined,
     extractedData: row.extracted_data as unknown as Certificate['extractedData'],
@@ -139,6 +140,7 @@ export async function upsertCertificate(
     attachment_name: cert.attachment?.name ?? null,
     attachment_type: cert.attachment?.type ?? null,
     attachment_size: cert.attachment?.size ?? null,
+    file_hash: cert.attachment?.fileHash ?? null,
     storage_path: cert.attachment?.storagePath ?? null,
     extracted_data: cert.extractedData
       ? (cert.extractedData as unknown as Record<string, unknown>)
@@ -172,6 +174,27 @@ export async function deleteCertificateRemote(certId: number): Promise<void> {
     .delete()
     .eq('id', certId)
   if (error) throw new Error(error.message)
+}
+
+export async function findCertificateByFileHash(
+  profileId: string,
+  fileHash: string,
+  excludeCertId?: number,
+): Promise<Certificate | null> {
+  let query = supabase
+    .from('certificates')
+    .select('*')
+    .eq('profile_id', profileId)
+    .eq('file_hash', fileHash)
+    .limit(1)
+
+  if (excludeCertId) {
+    query = query.neq('id', excludeCertId)
+  }
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? dbCertToLocal(data as DbCertificate) : null
 }
 
 // ── Storage ───────────────────────────────────────────────────────

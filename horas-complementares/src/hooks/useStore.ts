@@ -14,6 +14,7 @@ import {
   deleteProfileRemote,
   upsertCertificate,
   deleteCertificateRemote,
+  findCertificateByFileHash,
   uploadAttachment,
   getAttachmentUrl,
 } from '@/lib/api'
@@ -82,6 +83,12 @@ function computeUsage(certs: Certificate[]) {
     out[c.id] = { effectiveHours: eff, excessHours: exc }
   }
   return out
+}
+
+function duplicateMessage(cert: Certificate | undefined) {
+  if (!cert) return 'Este arquivo já foi enviado anteriormente.'
+  const descriptionPart = cert.description ? ` (${cert.description})` : ''
+  return `Este arquivo já foi enviado anteriormente${descriptionPart}.`
 }
 
 export function useStore() {
@@ -220,14 +227,35 @@ export function useStore() {
   // ── Certificate mutations ─────────────────────────────────────
 
   const addCertificate = useCallback(
-    async (cert: Omit<Certificate, 'id' | 'createdAt' | 'updatedAt'>) => {
-      // Validar duplicata ANTES de adicionar
+    async (cert: Omit<Certificate, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
       const duplicateCheck = checkDuplicate(cert, state.certificates)
-
       if (duplicateCheck.isDuplicate) {
-        // Armazenar erro no estado para o UI exibir
-        setApiError(`Certificado duplicado! Você já enviou um certificado similar em ${duplicateCheck.matchingCertificate?.date}`)
-        return // Não adiciona certificado
+        setApiError(duplicateMessage(duplicateCheck.matchingCertificate))
+        return false
+      }
+
+      let profileRowId: string | null = null
+
+      if (authUser) {
+        try {
+          setApiStatus('syncing')
+          setApiError('')
+          const profileRow = await upsertProfile(state.student, authUser.id)
+          profileRowId = profileRow.id
+
+          if (cert.attachment?.fileHash) {
+            const remoteDuplicate = await findCertificateByFileHash(profileRow.id, cert.attachment.fileHash)
+            if (remoteDuplicate) {
+              setApiStatus('online')
+              setApiError(duplicateMessage(remoteDuplicate))
+              return false
+            }
+          }
+        } catch (err) {
+          setApiStatus('error')
+          setApiError(err instanceof Error ? err.message : 'Erro ao validar certificado.')
+          return false
+        }
       }
 
       // Optimistic: assign a temp negative id so the UI updates instantly
@@ -242,12 +270,11 @@ export function useStore() {
       setActiveRegistration(optimisticScoped.registration)
       persist(optimisticScoped.registration, optimisticState, optimisticScoped.profiles)
 
-      if (!authUser) return
+      if (!authUser) return true
 
       try {
         setApiStatus('syncing')
         setApiError('')
-        const profileRow = await upsertProfile(state.student, authUser.id)
 
         // Upload attachment if it has a dataUrl (not yet in storage)
         let savedCert = { ...cert } as Certificate
@@ -263,7 +290,7 @@ export function useStore() {
           savedCert = { ...savedCert, attachment: { ...cert.attachment, dataUrl: undefined, storagePath } }
         }
 
-        const persisted = await upsertCertificate({ ...savedCert, id: 0 }, profileRow.id)
+        const persisted = await upsertCertificate({ ...savedCert, id: 0 }, profileRowId!)
 
         // Replace temp id with real id
         const next = {
@@ -277,9 +304,11 @@ export function useStore() {
         persist(scoped.registration, next, scoped.profiles)
         setApiStatus('online')
         setApiError('')
+        return true
       } catch (err) {
         setApiStatus('error')
         setApiError(err instanceof Error ? err.message : 'Erro ao salvar certificado.')
+        return false
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -287,7 +316,23 @@ export function useStore() {
   )
 
   const updateCertificate = useCallback(
-    async (id: number, partial: Partial<Certificate>) => {
+    async (id: number, partial: Partial<Certificate>): Promise<boolean> => {
+      const current = state.certificates.find(c => c.id === id)
+      if (!current) {
+        setApiStatus('error')
+        setApiError('Certificado não encontrado para atualizar.')
+        return false
+      }
+
+      const candidate = { ...current, ...partial }
+      if (candidate.attachment?.fileHash) {
+        const localDuplicate = state.certificates.find(c => c.id !== id && c.attachment?.fileHash === candidate.attachment?.fileHash)
+        if (localDuplicate) {
+          setApiError(duplicateMessage(localDuplicate))
+          return false
+        }
+      }
+
       const next = {
         ...state,
         certificates: state.certificates.map(c =>
@@ -300,23 +345,27 @@ export function useStore() {
       setActiveRegistration(scoped.registration)
       persist(scoped.registration, next, scoped.profiles)
 
-      if (!authUser) return
+      if (!authUser) return true
       try {
         setApiStatus('syncing')
         setApiError('')
-        const full = state.certificates.find(c => c.id === id)
-        if (!full) {
-          setApiStatus('error')
-          setApiError('Certificado não encontrado para atualizar.')
-          return
-        }
         const profileRow = await upsertProfile(state.student, authUser.id)
-        await upsertCertificate({ ...full, ...partial, id }, profileRow.id)
+        if (candidate.attachment?.fileHash) {
+          const remoteDuplicate = await findCertificateByFileHash(profileRow.id, candidate.attachment.fileHash, id)
+          if (remoteDuplicate) {
+            setApiStatus('online')
+            setApiError(duplicateMessage(remoteDuplicate))
+            return false
+          }
+        }
+        await upsertCertificate({ ...candidate, id }, profileRow.id)
         setApiStatus('online')
         setApiError('')
+        return true
       } catch (err) {
         setApiStatus('error')
         setApiError(err instanceof Error ? err.message : 'Erro ao atualizar certificado.')
+        return false
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

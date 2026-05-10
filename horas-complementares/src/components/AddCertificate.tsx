@@ -5,7 +5,7 @@ import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
 import { analyzeCertificateText } from '@/lib/certificateAnalyzer'
-import { checkDuplicate } from '@/lib/duplicateChecker'
+import { checkDuplicate, getFileHash } from '@/lib/duplicateChecker'
 import { Upload, Sparkles, CheckCircle, AlertTriangle, X, FileText, Image } from 'lucide-react'
 
 const CAT_STYLES = [
@@ -129,10 +129,37 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const [status, setStatus] = useState<{ type: 'loading' | 'ok' | 'warn'; msg: string } | null>(null)
   const [showLimitDialog, setShowLimitDialog] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isDuplicateFile, setIsDuplicateFile] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const setField = (k: keyof FormState, v: string) =>
     setForm(prev => ({ ...prev, [k]: v }))
+
+  const checkDuplicateAttachment = useCallback((nextAttachment: CertificateAttachment) => {
+    const duplicateCheck = checkDuplicate(
+      {
+        activityId: parseInt(form.activityId) || 0,
+        description: form.description.trim(),
+        hours: parseInt(form.hours) || 0,
+        date: form.date,
+        location: form.location.trim(),
+        attachment: nextAttachment,
+      },
+      store.state?.certificates ?? []
+    )
+
+    if (duplicateCheck.isDuplicate) {
+      setIsDuplicateFile(true)
+      setStatus({
+        type: 'warn',
+        msg: '⚠ Este mesmo arquivo já foi enviado anteriormente.'
+      })
+      return true
+    }
+
+    setIsDuplicateFile(false)
+    return false
+  }, [form.activityId, form.date, form.description, form.hours, form.location, store.state])
 
   const handleFile = useCallback(async (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
@@ -145,9 +172,11 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     if (ext === 'pdf') {
       try {
         const dataUrl = await fileToDataUrl(file)
+        const fileHash = await getFileHash(file)
         const text = await extractPDFText(file)
         setExtractedText(text.trim().slice(0, 1500))
-        setAttachment({ name: file.name, type: file.type || 'application/pdf', size: file.size, dataUrl })
+        const nextAttachment = { name: file.name, type: file.type || 'application/pdf', size: file.size, fileHash, dataUrl }
+        setAttachment(nextAttachment)
         // Auto-fill
         const detectedAnalysis = analyzeCertificateText(text)
         setAnalysis(detectedAnalysis)
@@ -177,22 +206,30 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
             analysis: detectedAnalysis,
           })
         }
-        setStatus({ type: 'ok', msg: 'PDF processado com sucesso! Verifique os dados antes de salvar.' })
+        if (!checkDuplicateAttachment(nextAttachment)) {
+          setStatus({ type: 'ok', msg: 'PDF processado com sucesso! Verifique os dados antes de salvar.' })
+        }
       } catch {
+        setIsDuplicateFile(false)
         setStatus({ type: 'warn', msg: 'Não foi possível extrair o texto. Preencha os dados manualmente.' })
       }
     } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
-      fileToDataUrl(file).then(dataUrl => {
+      Promise.all([fileToDataUrl(file), getFileHash(file)]).then(([dataUrl, fileHash]) => {
         setPreviewSrc(dataUrl)
-        setAttachment({ name: file.name, type: file.type || `image/${ext}`, size: file.size, dataUrl })
-        setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo.' })
+        const nextAttachment = { name: file.name, type: file.type || `image/${ext}`, size: file.size, fileHash, dataUrl }
+        setAttachment(nextAttachment)
+        if (!checkDuplicateAttachment(nextAttachment)) {
+          setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo.' })
+        }
       }).catch(() => {
+        setIsDuplicateFile(false)
         setStatus({ type: 'warn', msg: 'Não foi possível carregar a imagem. Tente outro arquivo.' })
       })
     } else {
+      setIsDuplicateFile(false)
       setStatus({ type: 'warn', msg: 'Formato não suportado. Use PDF, PNG ou JPG.' })
     }
-  }, [])
+  }, [checkDuplicateAttachment])
 
   const filteredActivities = ACTIVITIES.filter(a => a.categoryId === parseInt(form.categoryId))
   const selectedActivity = ACTIVITIES.find(a => a.id === parseInt(form.activityId))
@@ -201,10 +238,10 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const hoursNum = parseInt(form.hours) || 0
   const willExceed = selectedActivity && hoursNum > 0 && hoursNum + submittedForAct > selectedActivity.maxHours
 
-  const saveCertificate = () => {
+  const saveCertificate = async () => {
     const actId = parseInt(form.activityId)
     if (!actId) return
-    store.addCertificate({
+    const saved = await store.addCertificate({
       activityId: actId,
       description: form.description.trim(),
       hours: parseInt(form.hours) || 0,
@@ -223,6 +260,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
           }
         : undefined,
     })
+    if (!saved) return
     setForm(EMPTY_FORM)
     setSuggestion(null)
     setExtractedText(null)
@@ -231,10 +269,11 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setAnalysis(null)
     setStatus(null)
     setShowLimitDialog(false)
+    setIsDuplicateFile(false)
     onSuccess()
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validar duplicata
@@ -252,12 +291,10 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     )
 
     if (duplicateCheck.isDuplicate) {
-      const reason = duplicateCheck.reason === 'file_hash' ? 'mesmo arquivo' :
-                     duplicateCheck.reason === 'description_similarity' ? 'descrição similar' :
-                     'mesma atividade no mesmo dia'
+      setIsDuplicateFile(true)
       setStatus({
         type: 'warn',
-        msg: `⚠ Certificado duplicado detectado (${reason})! Você já enviou um certificado em ${duplicateCheck.matchingCertificate?.date}. Descrição: "${duplicateCheck.matchingCertificate?.description}"`
+        msg: '⚠ Este mesmo arquivo já foi enviado anteriormente.'
       })
       return
     }
@@ -266,7 +303,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
       setShowLimitDialog(true)
       return
     }
-    saveCertificate()
+    await saveCertificate()
   }
 
   const reset = () => {
@@ -278,6 +315,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setAnalysis(null)
     setStatus(null)
     setShowLimitDialog(false)
+    setIsDuplicateFile(false)
   }
 
   return (
@@ -523,10 +561,10 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               </button>
               <button
                 type="submit"
-                disabled={!form.activityId || !form.hours}
+                disabled={!form.activityId || !form.hours || isDuplicateFile}
                 className="flex-1 min-h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm shadow-indigo-200"
               >
-                Salvar certificado
+                {isDuplicateFile ? 'Arquivo duplicado' : 'Salvar certificado'}
               </button>
             </div>
           </form>

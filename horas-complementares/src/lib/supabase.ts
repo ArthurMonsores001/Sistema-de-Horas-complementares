@@ -29,6 +29,7 @@ export interface DbCertificate {
   attachment_name: string | null
   attachment_type: string | null
   attachment_size: number | null
+  file_hash: string | null
   storage_path: string | null
   extracted_data: Record<string, unknown> | null
   created_at: string

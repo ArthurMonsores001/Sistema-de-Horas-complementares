@@ -69,6 +69,8 @@ export interface CertificateAttachment {
   name: string
   type: string
   size: number
+  /** Hash SHA-256 do conteúdo do arquivo para detectar duplicidade real */
+  fileHash?: string
   /** Base64 data URL — presente apenas logo após o upload local, antes de salvar */
   dataUrl?: string
   /** Caminho no Supabase Storage — preenchido após o upload remoto */
