@@ -342,15 +342,15 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               className={[
                 'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200',
                 isDragging
-                  ? 'border-vinho-400 bg-vinho-50'
-                  : 'border-gray-200 hover:border-vinho-300 hover:bg-gray-50',
+                  ? 'border-indigo-400 bg-indigo-50'
+                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50',
               ].join(' ')}
             >
-              <div className="w-12 h-12 rounded-xl bg-vinho-50 flex items-center justify-center mx-auto mb-3">
-                <Upload size={22} className="text-vinho-500" />
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+                <Upload size={22} className="text-indigo-500" />
               </div>
               <p className="text-sm font-semibold text-gray-700">
-                <span className="text-vinho-600">Clique para selecionar</span> ou arraste aqui
+                <span className="text-indigo-600">Clique para selecionar</span> ou arraste aqui
               </p>
               <p className="text-xs text-gray-400 mt-1">PDF · PNG · JPG — extração automática de texto</p>
             </div>
@@ -381,7 +381,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
           {(extractedText || previewSrc) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="flex items-center gap-2 mb-3">
-                {extractedText ? <FileText size={14} className="text-vinho-500" /> : <Image size={14} className="text-vinho-500" />}
+                {extractedText ? <FileText size={14} className="text-indigo-500" /> : <Image size={14} className="text-indigo-500" />}
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                   {extractedText ? 'Texto Extraído' : 'Preview da Imagem'}
                 </span>
@@ -395,17 +395,17 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 <img src={previewSrc} alt="certificado" className="max-w-full max-h-48 rounded-lg object-contain" />
               )}
               {suggestion && (
-                <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-vinho-50 rounded-lg">
-                  <Sparkles size={13} className="text-vinho-500 flex-shrink-0" />
-                  <span className="text-xs text-vinho-600 font-medium">
+                <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-indigo-50 rounded-lg">
+                  <Sparkles size={13} className="text-indigo-500 flex-shrink-0" />
+                  <span className="text-xs text-indigo-600 font-medium">
                     Dados preenchidos automaticamente — revise antes de salvar
                   </span>
                 </div>
               )}
               {analysis && (
-                <div className="mt-3 rounded-lg border border-vinho-100 bg-vinho-50/60 p-3">
+                <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3">
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-vinho-500">Análise do certificado</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Análise do certificado</span>
                     <span className={[
                       'text-xs font-semibold px-2 py-0.5 rounded-full',
                       analysis.confidenceLabel === 'Alta' ? 'bg-emerald-50 text-emerald-700' :
@@ -422,7 +422,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                   {analysis.matchedKeywords.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {analysis.matchedKeywords.slice(0, 8).map(keyword => (
-                        <span key={keyword} className="text-[11px] font-medium text-vinho-700 bg-white px-2 py-0.5 rounded-full">
+                        <span key={keyword} className="text-[11px] font-medium text-indigo-700 bg-white px-2 py-0.5 rounded-full">
                           {keyword}
                         </span>
                       ))}
@@ -444,7 +444,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Categoria
                 {suggestion?.activityId !== undefined && suggestion.activityId >= 0 && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-vinho-600 bg-vinho-50 px-2 py-0.5 rounded-full">
+                  <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
                     <Sparkles size={10} /> sugestão automática
                   </span>
                 )}
@@ -453,7 +453,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 required
                 value={form.categoryId}
                 onChange={e => { setField('categoryId', e.target.value); setField('activityId', '') }}
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               >
                 <option value="">Selecione a categoria...</option>
                 {SELECTABLE_CATEGORIES.map(cat => (
@@ -470,7 +470,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 value={form.activityId}
                 onChange={e => setField('activityId', e.target.value)}
                 disabled={!form.categoryId}
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">
                   {form.categoryId ? 'Selecione a atividade...' : 'Selecione a categoria primeiro'}
@@ -509,7 +509,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
                 placeholder="Ex: Curso de Python para Iniciantes"
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               />
             </label>
 
@@ -525,7 +525,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                   value={form.hours}
                   onChange={e => setField('hours', e.target.value)}
                   placeholder="Ex: 20"
-                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none"
+                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
                 />
               </label>
               <label className="block">
@@ -534,7 +534,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                   type="date"
                   value={form.date}
                   onChange={e => setField('date', e.target.value)}
-                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none"
+                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
                 />
               </label>
             </div>
@@ -546,7 +546,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
                 value={form.location}
                 onChange={e => setField('location', e.target.value)}
                 placeholder="Ex: UNIVASSOURAS"
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 transition-all outline-none"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               />
             </label>
 
@@ -562,7 +562,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               <button
                 type="submit"
                 disabled={!form.activityId || !form.hours || isDuplicateFile}
-                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm shadow-vinho-200"
+                className="flex-1 min-h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm shadow-indigo-200"
               >
                 {isDuplicateFile ? 'Arquivo duplicado' : 'Salvar certificado'}
               </button>
@@ -597,7 +597,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               </button>
               <button
                 onClick={saveCertificate}
-                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
+                className="flex-1 min-h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
               >
                 Salvar assim mesmo
               </button>

@@ -22,8 +22,8 @@ export default function SyncStatus({ store }: SyncStatusProps) {
 
   if (store.apiStatus === 'syncing') {
     return (
-      <div className="border-b border-vinho-100 bg-vinho-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 text-sm text-vinho-700">
+      <div className="border-b border-indigo-100 bg-indigo-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 text-sm text-indigo-700">
           <Loader2 size={15} className="animate-spin flex-shrink-0" />
           <span className="font-medium">Sincronizando com o Supabase...</span>
         </div>

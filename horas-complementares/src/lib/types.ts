@@ -3,16 +3,11 @@ export interface Warning {
   message: string
 }
 
-export type CertificateStatus = 'draft' | 'pending' | 'approved' | 'rejected'
-export type UserRole = 'student' | 'supervisor'
-
 export interface Student {
   name: string
   registration: string
   cpf: string
   course: string
-  turma: string
-  periodo: string
   totalRequired: number
 }
 
@@ -94,9 +89,6 @@ export interface Certificate {
   warnings?: Warning[]
   createdAt?: string
   updatedAt?: string
-  submittedAt?: string
-  status?: CertificateStatus
-  supervisorComment?: string
   extractedData?: ExtractedData
   attachment?: CertificateAttachment
 }
