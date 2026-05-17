@@ -19,7 +19,7 @@ function RingProgress({ value, max }: { value: number; max: number }) {
         <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="13" />
         <circle
           cx="80" cy="80" r={r} fill="none"
-          stroke={complete ? '#10b981' : '#818cf8'}
+          stroke={complete ? '#10b981' : '#ffffff'}
           strokeWidth="13"
           strokeDasharray={`${dash} ${circ - dash}`}
           strokeLinecap="round"
@@ -76,7 +76,7 @@ function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCa
         />
       </div>
       <div className="text-xs text-gray-400 mt-2">de {maxPossible}h possíveis</div>
-      <div className="text-xs text-indigo-600 dark:text-indigo-300 font-semibold mt-3 flex items-center gap-1">
+      <div className="text-xs text-gray-900 dark:text-white font-semibold mt-3 flex items-center gap-1">
         Ver detalhes <ChevronRight size={12} />
       </div>
     </button>
@@ -198,11 +198,11 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
     <div className="space-y-5">
       {/* First-run banner */}
       {!name && (
-        <div className="flex items-center gap-4 bg-indigo-600 text-white rounded-xl px-5 py-4 shadow-md shadow-indigo-200">
+        <div className="flex items-center gap-4 bg-vinho-600 text-white rounded-xl px-5 py-4 shadow-md shadow-vinho-200">
           <Award size={28} className="flex-shrink-0 opacity-80" />
           <div className="flex-1">
             <div className="font-semibold text-sm">Bem-vindo(a)!</div>
-            <div className="text-xs text-indigo-200 mt-0.5">Configure seu nome e matrícula para personalizar o app.</div>
+            <div className="text-xs text-vinho-200 mt-0.5">Configure seu nome e matrícula para personalizar o app.</div>
           </div>
           <button
             onClick={() => onNavigate('settings')}
@@ -241,21 +241,21 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
 
       {/* Hero */}
       <div
-        className="rounded-2xl overflow-hidden shadow-lg shadow-indigo-900/20"
-        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #4338ca 100%)' }}
+        className="rounded-2xl overflow-hidden shadow-lg shadow-vinho-900/20"
+        style={{ background: 'linear-gradient(135deg, #26040a 0%, #790E18 50%, #5e0b13 100%)' }}
       >
         <div className="px-6 py-6 sm:px-8 sm:py-7">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex-1">
               {firstName && (
-                <div className="text-indigo-300 text-sm font-medium mb-1">
+                <div className="text-white/80 text-sm font-medium mb-1">
                   Olá, {firstName}! 👋
                 </div>
               )}
               <div className="text-white font-bold text-xl sm:text-2xl mb-0.5">
                 Progresso das Horas
               </div>
-              <div className="text-indigo-300 text-sm mb-5">
+              <div className="text-white/80 text-sm mb-5">
                 Engenharia{state.student.registration && ` · Matrícula ${state.student.registration}`}
               </div>
 
@@ -267,11 +267,11 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
                     width: `${pct}%`,
                     background: totalEff >= required
                       ? 'linear-gradient(90deg, #10b981, #34d399)'
-                      : 'linear-gradient(90deg, #818cf8, #a5b4fc)',
+                      : 'linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))',
                   }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-indigo-300">
+              <div className="flex justify-between text-xs text-white/80">
                 <span><span className="text-white font-bold">{totalEff}h</span> concluídas</span>
                 <span className="font-semibold text-white/70">{pct}%</span>
                 <span>
@@ -325,7 +325,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
         {/* Bar chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-2 mb-5">
-            <TrendingUp size={15} className="text-indigo-500" />
+            <TrendingUp size={15} className="text-gray-900" />
             <h3 className="text-sm font-semibold text-gray-700">Distribuição por Categoria</h3>
           </div>
           {CATEGORIES.map((cat, i) => (
@@ -343,7 +343,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
         {/* Activity breakdown */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Clock size={15} className="text-indigo-500" />
+            <Clock size={15} className="text-gray-900" />
             <h3 className="text-sm font-semibold text-gray-700">Atividades Registradas</h3>
           </div>
           {actsWithHours.length === 0 ? (
@@ -375,12 +375,12 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Clock size={15} className="text-indigo-500" />
+              <Clock size={15} className="text-gray-900" />
               <h3 className="text-sm font-semibold text-gray-700">Adicionados Recentemente</h3>
             </div>
             <button
               onClick={() => onNavigate('certificates')}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition-colors"
+              className="text-xs text-vinho-600 hover:text-vinho-800 font-medium flex items-center gap-1 transition-colors"
             >
               Ver todos <ChevronRight size={12} />
             </button>
@@ -401,7 +401,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
           <p className="text-gray-400 text-sm mb-4">Adicione seus certificados para começar a acompanhar o progresso</p>
           <button
             onClick={() => onNavigate('add')}
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm shadow-indigo-200"
+            className="inline-flex items-center gap-2 bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm shadow-vinho-200"
           >
             Adicionar primeiro certificado
           </button>

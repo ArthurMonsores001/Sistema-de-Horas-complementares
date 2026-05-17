@@ -1,5 +1,19 @@
 import { Category, Activity } from './types'
 
+export interface CourseOption {
+  id: string
+  name: string
+  available: boolean
+}
+
+export const COURSES: CourseOption[] = [
+  { id: 'Engenharia', name: 'Engenharia', available: true },
+  { id: 'Medicina', name: 'Medicina', available: false },
+  { id: 'Psicologia', name: 'Psicologia', available: false },
+  { id: 'Direito', name: 'Direito', available: false },
+  { id: 'Administração', name: 'Administração', available: false },
+]
+
 export const CATEGORIES: Category[] = [
   {
     id: 0,
