@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AppState, Certificate, Student, StudentProfile } from '@/lib/types'
+import { AppState, Certificate, Student, StudentProfile, UserRole } from '@/lib/types'
 import { ACTIVITIES } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
 import { checkDuplicate } from '@/lib/duplicateChecker'
@@ -17,6 +17,9 @@ import {
   findCertificateByFileHash,
   uploadAttachment,
   getAttachmentUrl,
+  submitCertificateForReview,
+  submitMultipleCertificatesForReview,
+  getUserRole,
 } from '@/lib/api'
 
 const STORAGE_KEY = 'hc-app-v3'
@@ -26,6 +29,8 @@ const DEFAULT_STUDENT: Student = {
   registration: '',
   cpf: '',
   course: 'Engenharia',
+  turma: '',
+  periodo: '',
   totalRequired: 120,
 }
 
@@ -97,6 +102,7 @@ export function useStore() {
   const [activeRegistration, setActiveRegistration] = useState('')
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [authChecking, setAuthChecking] = useState(true)
+  const [userRole, setUserRole] = useState<UserRole>('student')
   const [apiStatus, setApiStatus] = useState<'local' | 'online' | 'syncing' | 'error'>('local')
   const [apiError, setApiError] = useState('')
   const [hydrated, setHydrated] = useState(false)
@@ -120,7 +126,9 @@ export function useStore() {
       if (user) {
         setAuthUser(user)
         setApiStatus('online')
-        await pullRemoteProfiles(user)
+        const role = await getUserRole(user.id, user.email)
+        setUserRole(role)
+        if (role === 'student') await pullRemoteProfiles(user)
       }
 
       setAuthChecking(false)
@@ -172,15 +180,19 @@ export function useStore() {
   }, [authUser])
 
   // ── Auth callbacks ────────────────────────────────────────────
-  const onAuthSuccess = useCallback(async (user: AuthUser) => {
+  const onAuthSuccess = useCallback(async (user: AuthUser): Promise<UserRole> => {
     setAuthUser(user)
     setApiStatus('online')
-    await pullRemoteProfiles(user)
+    const role = await getUserRole(user.id, user.email)
+    setUserRole(role)
+    if (role === 'student') await pullRemoteProfiles(user)
+    return role
   }, [pullRemoteProfiles])
 
   const logout = useCallback(async () => {
     await signOut()
     setAuthUser(null)
+    setUserRole('student')
     setApiStatus('local')
     setApiError('')
     setProfiles({})
@@ -491,6 +503,66 @@ export function useStore() {
     [profiles],
   )
 
+  // ── Submit for review ─────────────────────────────────────────
+
+  const submitForReview = useCallback(
+    async (certId: number): Promise<boolean> => {
+      if (!authUser) return false
+      try {
+        setApiStatus('syncing')
+        setApiError('')
+        await submitCertificateForReview(certId)
+        const next = {
+          ...state,
+          certificates: state.certificates.map(c =>
+            c.id === certId ? { ...c, status: 'pending' as const, submittedAt: new Date().toISOString() } : c,
+          ),
+        }
+        const scoped = scopeStateToProfile(activeRegistration, next, profiles)
+        setState(next)
+        setProfiles(scoped.profiles)
+        persist(scoped.registration, next, scoped.profiles)
+        setApiStatus('online')
+        return true
+      } catch (err) {
+        setApiStatus('error')
+        setApiError(err instanceof Error ? err.message : 'Erro ao enviar para avaliação.')
+        return false
+      }
+    },
+    [authUser, state, activeRegistration, profiles],
+  )
+
+  const submitMultipleForReview = useCallback(
+    async (certIds: number[]): Promise<boolean> => {
+      if (!authUser || certIds.length === 0) return false
+      try {
+        setApiStatus('syncing')
+        setApiError('')
+        await submitMultipleCertificatesForReview(certIds)
+        const now = new Date().toISOString()
+        const idSet = new Set(certIds)
+        const next = {
+          ...state,
+          certificates: state.certificates.map(c =>
+            idSet.has(c.id) ? { ...c, status: 'pending' as const, submittedAt: now } : c,
+          ),
+        }
+        const scoped = scopeStateToProfile(activeRegistration, next, profiles)
+        setState(next)
+        setProfiles(scoped.profiles)
+        persist(scoped.registration, next, scoped.profiles)
+        setApiStatus('online')
+        return true
+      } catch (err) {
+        setApiStatus('error')
+        setApiError(err instanceof Error ? err.message : 'Erro ao enviar certificados para avaliação.')
+        return false
+      }
+    },
+    [authUser, state, activeRegistration, profiles],
+  )
+
   // ── Attachment URL helper ─────────────────────────────────────
 
   const resolveAttachmentUrl = useCallback(
@@ -562,6 +634,7 @@ export function useStore() {
     activeRegistration,
     authUser,
     authChecking,
+    userRole,
     apiStatus,
     apiError,
     hydrated,
@@ -593,6 +666,8 @@ export function useStore() {
     pullFromBackend,
     syncToBackend,
     resolveAttachmentUrl,
+    submitForReview,
+    submitMultipleForReview,
 
     // Import / Export
     exportAllProfiles,

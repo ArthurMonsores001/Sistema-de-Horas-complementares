@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StoreType } from '@/hooks/useStore'
 import { Student } from '@/lib/types'
 import { exportStudentExcelReport } from '@/lib/excelReport'
+import { COURSES } from '@/lib/data'
 import { Download, FileSpreadsheet, LogOut, RotateCcw, Save, Trash2, Upload, Users, RefreshCw, Cloud } from 'lucide-react'
 
 interface SettingsProps {
@@ -159,7 +160,7 @@ export default function Settings({ store }: SettingsProps) {
       {/* ── Conta Supabase ──────────────────────────────────────── */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Cloud size={15} className="text-indigo-500" />
+          <Cloud size={15} className="text-vinho-500" />
           <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Conta</div>
         </div>
 
@@ -180,7 +181,7 @@ export default function Settings({ store }: SettingsProps) {
                 <Download size={14} /> Baixar
               </button>
               <button onClick={pushRemote}
-                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors">
                 <RefreshCw size={14} /> Sincronizar
               </button>
               <button onClick={handleLogout}
@@ -197,13 +198,13 @@ export default function Settings({ store }: SettingsProps) {
       {/* ── Perfis por Matrícula ────────────────────────────────── */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-5">
-          <Users size={15} className="text-indigo-500" />
+          <Users size={15} className="text-vinho-500" />
           <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Perfis por Matrícula</div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3 mb-5">
           <select value={profileToLoad} onChange={e => setProfileToLoad(e.target.value)}
-            className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+            className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100">
             <option value="">Selecione uma matrícula salva...</option>
             {savedProfiles.map(p => (
               <option key={p.registration} value={p.registration}>
@@ -223,26 +224,41 @@ export default function Settings({ store }: SettingsProps) {
 
         <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Perfil Acadêmico</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(['name', 'registration', 'cpf', 'course'] as const).map(field => (
+          {(['name', 'registration', 'cpf', 'turma', 'periodo'] as const).map(field => (
             <label key={field} className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1.5 capitalize">
-                {field === 'name' ? 'Nome' : field === 'registration' ? 'Matrícula' : field === 'cpf' ? 'CPF' : 'Curso'}
+              <span className="block text-sm font-medium text-gray-700 mb-1.5">
+                {field === 'name' ? 'Nome'
+                  : field === 'registration' ? 'Matrícula'
+                  : field === 'cpf' ? 'CPF'
+                  : field === 'turma' ? 'Turma'
+                  : 'Período'}
               </span>
               <input value={student[field]} onChange={e => updateField(field, e.target.value)}
                 maxLength={field === 'cpf' ? 14 : undefined}
-                className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100" />
             </label>
           ))}
           <label className="block">
+            <span className="block text-sm font-medium text-gray-700 mb-1.5">Curso</span>
+            <select value={student.course} onChange={e => updateField('course', e.target.value)}
+              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 bg-white">
+              {COURSES.map(c => (
+                <option key={c.id} value={c.id} disabled={!c.available}>
+                  {c.name}{!c.available ? ' (em breve)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
             <span className="block text-sm font-medium text-gray-700 mb-1.5">Total necessário (horas)</span>
             <input type="number" min="1" value={student.totalRequired} onChange={e => updateField('totalRequired', e.target.value)}
-              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100" />
           </label>
         </div>
 
         <div className="flex justify-end mt-5">
           <button onClick={saveStudent}
-            className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+            className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors">
             <Save size={15} /> Salvar perfil por matrícula
           </button>
         </div>

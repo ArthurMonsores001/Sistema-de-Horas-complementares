@@ -38,7 +38,7 @@ export default function CategoryDetails({ categoryId, store, onNavigate }: Categ
       <button
         type="button"
         onClick={() => onNavigate('dashboard')}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-vinho-600 transition-colors"
       >
         <ArrowLeft size={16} /> Voltar ao dashboard
       </button>
@@ -66,7 +66,7 @@ export default function CategoryDetails({ categoryId, store, onNavigate }: Categ
             </div>
             <div className="rounded-lg bg-gray-50 px-4 py-3">
               <div className="text-xs text-gray-400">Restante</div>
-              <div className="text-lg font-bold text-indigo-600">{Math.max(0, categoryMax - categoryEffective)}h</div>
+              <div className="text-lg font-bold text-vinho-600">{Math.max(0, categoryMax - categoryEffective)}h</div>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function CategoryDetails({ categoryId, store, onNavigate }: Categ
                   </div>
                   <div className="rounded-lg bg-gray-50 px-3 py-2">
                     <div className="text-[11px] text-gray-400">Ainda usa</div>
-                    <div className="text-sm font-bold text-indigo-600">{remaining}h</div>
+                    <div className="text-sm font-bold text-vinho-600">{remaining}h</div>
                   </div>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export default function CategoryDetails({ categoryId, store, onNavigate }: Categ
                     <div key={cert.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                          <FileText size={14} className="text-indigo-500 flex-shrink-0" />
+                          <FileText size={14} className="text-vinho-500 flex-shrink-0" />
                           <span className="truncate">{cert.description}</span>
                         </div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-400">

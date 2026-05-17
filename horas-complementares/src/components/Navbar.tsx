@@ -23,13 +23,13 @@ export default function Navbar({ activeTab, onTabChange, displayName, theme, onT
 
   return (
     <nav className="sticky top-0 z-50 shadow-xl" style={{
-      background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+      background: 'linear-gradient(135deg, #26040a 0%, #790E18 50%, #26040a 100%)',
     }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center h-14 gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-md shadow-indigo-900/50">
+            <div className="w-8 h-8 rounded-lg bg-vinho-500 flex items-center justify-center shadow-md shadow-vinho-900/50">
               <GraduationCap size={17} className="text-white" />
             </div>
             <div className="hidden sm:block">

@@ -11,6 +11,8 @@ import Settings from '@/components/Settings'
 import AuthGate from '@/components/AuthGate'
 import CategoryDetails from '@/components/CategoryDetails'
 import SyncStatus from '@/components/SyncStatus'
+import SupervisorArea from '@/components/SupervisorArea'
+import EvaluationNotification from '@/components/EvaluationNotification'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('dashboard')
@@ -38,7 +40,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-vinho-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-slate-400 text-sm font-medium">Carregando...</span>
         </div>
       </div>
@@ -46,8 +48,14 @@ export default function App() {
   }
 
   return (
-    <AuthGate store={store}>
+    <AuthGate store={store} supervisorArea={<SupervisorArea store={store} />}>
       <div className="min-h-screen bg-[#f0f2f8]">
+        {store.authUser && store.userRole === 'student' && (
+          <EvaluationNotification
+            certificates={store.state.certificates}
+            userId={store.authUser.id}
+          />
+        )}
         <Navbar
           activeTab={tab}
           onTabChange={setTab}
