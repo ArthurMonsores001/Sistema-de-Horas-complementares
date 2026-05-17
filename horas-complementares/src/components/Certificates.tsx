@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { Certificate, CertificateAttachment } from '@/lib/types'
 import { StoreType } from '@/hooks/useStore'
-import { AlertTriangle, Calendar, Check, Clock, Download, Eye, ExternalLink, FileText, MapPin, Pencil, Search, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Calendar, Check, Clock, Download, Eye, ExternalLink, FileText, MapPin, MessageSquare, Pencil, Search, Send, Square, SquareCheck, Trash2, X } from 'lucide-react'
+import { CertificateStatus } from '@/lib/types'
 
 const CAT_STYLES = [
   { badge: 'bg-blue-50 text-blue-700', border: 'border-l-blue-400' },
@@ -17,6 +18,13 @@ function formatDate(date: string) {
   if (!date) return 'Sem data'
   const [year, month, day] = date.split('-')
   return day && month && year ? `${day}/${month}/${year}` : date
+}
+
+const STATUS_CONFIG: Record<CertificateStatus, { label: string; className: string }> = {
+  draft:    { label: 'Rascunho',           className: 'bg-gray-100 text-gray-500' },
+  pending:  { label: 'Aguardando avaliação', className: 'bg-amber-50 text-amber-700' },
+  approved: { label: 'Aprovado',           className: 'bg-emerald-50 text-emerald-700' },
+  rejected: { label: 'Reprovado',          className: 'bg-red-50 text-red-700' },
 }
 
 function getCertificateMeta(cert: Certificate) {
@@ -119,7 +127,7 @@ function AttachmentPreview({
     return (
       <div className="h-full min-h-[420px] flex items-center justify-center text-center">
         <div>
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-vinho-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm font-semibold text-slate-700">Carregando arquivo...</p>
         </div>
       </div>
@@ -171,7 +179,42 @@ export default function Certificates({ store }: CertificatesProps) {
   const [editing, setEditing] = useState<Certificate | null>(null)
   const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [viewing, setViewing] = useState<Certificate | null>(null)
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [submitting, setSubmitting] = useState(false)
   const usageById = store.getCertificateUsage()
+
+  const submittableCerts = store.state.certificates.filter(
+    c => c.status === 'draft' || c.status === 'rejected' || !c.status
+  )
+
+  const openSubmitModal = () => {
+    setSelectedIds(new Set(submittableCerts.map(c => c.id)))
+    setShowSubmitModal(true)
+  }
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    setSelectedIds(prev =>
+      prev.size === submittableCerts.length
+        ? new Set()
+        : new Set(submittableCerts.map(c => c.id))
+    )
+  }
+
+  const confirmSubmit = async () => {
+    setSubmitting(true)
+    const ok = await store.submitMultipleForReview(Array.from(selectedIds))
+    setSubmitting(false)
+    if (ok) setShowSubmitModal(false)
+  }
 
   const startEdit = (cert: Certificate) => {
     setEditing(cert)
@@ -237,6 +280,15 @@ export default function Certificates({ store }: CertificatesProps) {
             {store.state.certificates.length} registros · {totalEffective}h válidas · {totalExcess}h excedentes
           </p>
         </div>
+        {store.authUser && submittableCerts.length > 0 && (
+          <button
+            type="button"
+            onClick={openSubmitModal}
+            className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors flex-shrink-0"
+          >
+            <Send size={15} /> Enviar para avaliação
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -247,14 +299,14 @@ export default function Certificates({ store }: CertificatesProps) {
               value={query}
               onChange={event => setQuery(event.target.value)}
               placeholder="Buscar por descrição, atividade ou instituição"
-              className="w-full min-h-11 pl-9 pr-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="w-full min-h-11 pl-9 pr-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
             />
           </label>
 
           <select
             value={categoryFilter}
             onChange={event => setCategoryFilter(event.target.value)}
-            className="w-full min-h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="w-full min-h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
           >
             <option value="all">Todas as categorias</option>
             {SELECTABLE_CATEGORIES.map(category => (
@@ -276,6 +328,8 @@ export default function Certificates({ store }: CertificatesProps) {
             const { activity, category, style } = getCertificateMeta(cert)
             const usage = usageById[cert.id] ?? { effectiveHours: cert.hours, excessHours: 0 }
             const hasExcess = usage.excessHours > 0
+            const certStatus = cert.status ?? 'draft'
+            const statusCfg = STATUS_CONFIG[certStatus]
 
             return (
               <article
@@ -293,7 +347,10 @@ export default function Certificates({ store }: CertificatesProps) {
                         <h2 className="text-sm font-semibold text-gray-900">{activity?.name ?? 'Atividade'}</h2>
                         <p className="text-sm text-gray-500 mt-0.5 break-words">{cert.description}</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${statusCfg.className}`}>
+                          {statusCfg.label}
+                        </span>
                         <span className="text-sm font-bold text-gray-900">{usage.effectiveHours}h válidas</span>
                         {hasExcess && (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
@@ -316,6 +373,13 @@ export default function Certificates({ store }: CertificatesProps) {
                         </span>
                       )}
                     </div>
+
+                    {certStatus === 'rejected' && cert.supervisorComment && (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <MessageSquare size={13} className="flex-shrink-0 mt-0.5" />
+                        <span><strong>Comentário do avaliador:</strong> {cert.supervisorComment}</span>
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -330,7 +394,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   <button
                     type="button"
                     onClick={() => startEdit(cert)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 flex items-center justify-center transition-colors flex-shrink-0"
+                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-vinho-600 hover:border-vinho-200 hover:bg-vinho-50 flex items-center justify-center transition-colors flex-shrink-0"
                     aria-label="Editar certificado"
                   >
                     <Pencil size={15} />
@@ -352,6 +416,94 @@ export default function Certificates({ store }: CertificatesProps) {
               </article>
             )
           })}
+        </div>
+      )}
+
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Enviar para avaliação</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Selecione os certificados que deseja enviar ao avaliador.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSubmitModal(false)}
+                className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="flex items-center gap-2 text-sm text-vinho-600 font-medium mb-3 hover:underline"
+            >
+              {selectedIds.size === submittableCerts.length
+                ? <><SquareCheck size={16} /> Desmarcar todos</>
+                : <><Square size={16} /> Selecionar todos</>
+              }
+            </button>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {submittableCerts.map(cert => {
+                const { activity, style } = getCertificateMeta(cert)
+                const checked = selectedIds.has(cert.id)
+                return (
+                  <button
+                    key={cert.id}
+                    type="button"
+                    onClick={() => toggleSelect(cert.id)}
+                    className={[
+                      'w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors',
+                      checked
+                        ? 'border-vinho-300 bg-vinho-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                    ].join(' ')}
+                  >
+                    <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${checked ? 'bg-vinho-600' : 'border-2 border-gray-300'}`}>
+                      {checked && <Check size={12} className="text-white" />}
+                    </div>
+                    <div className={`w-7 h-7 rounded flex items-center justify-center text-sm flex-shrink-0 ${style.badge}`}>
+                      {getCertificateMeta(cert).category.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{activity?.name ?? 'Atividade'}</p>
+                      <p className="text-xs text-gray-500 truncate">{cert.description}</p>
+                    </div>
+                    <span className="text-sm font-bold text-gray-700 flex-shrink-0">{cert.hours}h</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {store.apiError && (
+              <p className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{store.apiError}</p>
+            )}
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowSubmitModal(false)}
+                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={selectedIds.size === 0 || submitting}
+                onClick={confirmSubmit}
+                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {submitting
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enviando...</>
+                  : <><Send size={15} /> Enviar {selectedIds.size} certificado{selectedIds.size !== 1 ? 's' : ''}</>
+                }
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -381,7 +533,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     required
                     value={editForm.categoryId}
                     onChange={event => setEditField('categoryId', event.target.value)}
-                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
                   >
                     <option value="">Selecione a categoria...</option>
                     {SELECTABLE_CATEGORIES.map(category => (
@@ -397,7 +549,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     value={editForm.activityId}
                     onChange={event => setEditField('activityId', event.target.value)}
                     disabled={!editForm.categoryId}
-                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 disabled:opacity-50"
                   >
                     <option value="">
                       {editForm.categoryId ? 'Selecione a atividade...' : 'Selecione a categoria primeiro'}
@@ -419,7 +571,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   required
                   value={editForm.description}
                   onChange={event => setEditField('description', event.target.value)}
-                  className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
                 />
               </label>
 
@@ -433,7 +585,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     max="9999"
                     value={editForm.hours}
                     onChange={event => setEditField('hours', event.target.value)}
-                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
                   />
                 </label>
 
@@ -443,7 +595,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     type="date"
                     value={editForm.date}
                     onChange={event => setEditField('date', event.target.value)}
-                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
                   />
                 </label>
 
@@ -452,7 +604,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   <input
                     value={editForm.location}
                     onChange={event => setEditField('location', event.target.value)}
-                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
                   />
                 </label>
               </div>
@@ -467,7 +619,7 @@ export default function Certificates({ store }: CertificatesProps) {
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
                 >
                   <Check size={15} /> Salvar alterações
                 </button>
@@ -610,7 +762,7 @@ export default function Certificates({ store }: CertificatesProps) {
                           <div className="text-xs font-semibold text-gray-400 mb-2">Palavras encontradas</div>
                           <div className="flex flex-wrap gap-1.5">
                             {analysis.matchedKeywords.map(keyword => (
-                              <span key={keyword} className="text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                              <span key={keyword} className="text-[11px] font-medium text-vinho-700 bg-vinho-50 px-2 py-0.5 rounded-full">
                                 {keyword}
                               </span>
                             ))}
@@ -666,7 +818,7 @@ export default function Certificates({ store }: CertificatesProps) {
                       <a
                         href={viewing.attachment.dataUrl}
                         download={viewing.attachment.name}
-                        className="inline-flex items-center justify-center gap-2 min-h-10 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+                        className="inline-flex items-center justify-center gap-2 min-h-10 px-3 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
                       >
                         <Download size={14} /> Baixar
                       </a>

@@ -3,8 +3,8 @@
  * O cliente Django foi removido; este arquivo expõe as mesmas
  * assinaturas usadas pelo useStore para manter compatibilidade.
  */
-import { supabase, DbProfile, DbCertificate } from './supabase'
-import { Certificate, Student, StudentProfile } from './types'
+import { supabase, DbProfile, DbCertificate, DbUserRole } from './supabase'
+import { Certificate, CertificateStatus, Student, StudentProfile, UserRole } from './types'
 
 // ── Auth ──────────────────────────────────────────────────────────
 
@@ -44,6 +44,8 @@ function dbProfileToStudent(row: DbProfile): Student {
     registration: row.registration,
     cpf: row.cpf,
     course: row.course,
+    turma: row.turma ?? '',
+    periodo: row.periodo ?? '',
     totalRequired: row.total_required,
   }
 }
@@ -84,6 +86,8 @@ export async function upsertProfile(student: Student, userId: string): Promise<D
       name: student.name,
       cpf: student.cpf,
       course: student.course,
+      turma: student.turma,
+      periodo: student.periodo,
       total_required: student.totalRequired,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,registration' })
@@ -115,10 +119,14 @@ function dbCertToLocal(row: DbCertificate): Certificate {
     location: row.location,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    submittedAt: row.submitted_at ?? undefined,
+    status: (row.status as CertificateStatus) ?? 'draft',
+    supervisorComment: row.supervisor_comment ?? undefined,
     attachment: (row.attachment_name || row.storage_path) ? {
       name: row.attachment_name ?? '',
       type: row.attachment_type ?? '',
       size: row.attachment_size ?? 0,
+      fileHash: row.file_hash ?? undefined,
       storagePath: row.storage_path ?? undefined,
     } : undefined,
     extractedData: row.extracted_data as unknown as Certificate['extractedData'],
@@ -139,10 +147,14 @@ export async function upsertCertificate(
     attachment_name: cert.attachment?.name ?? null,
     attachment_type: cert.attachment?.type ?? null,
     attachment_size: cert.attachment?.size ?? null,
+    file_hash: cert.attachment?.fileHash ?? null,
     storage_path: cert.attachment?.storagePath ?? null,
     extracted_data: cert.extractedData
       ? (cert.extractedData as unknown as Record<string, unknown>)
       : null,
+    status: cert.status ?? 'draft',
+    supervisor_comment: cert.supervisorComment ?? null,
+    submitted_at: cert.submittedAt ?? null,
     updated_at: new Date().toISOString(),
   }
 
@@ -174,6 +186,27 @@ export async function deleteCertificateRemote(certId: number): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function findCertificateByFileHash(
+  profileId: string,
+  fileHash: string,
+  excludeCertId?: number,
+): Promise<Certificate | null> {
+  let query = supabase
+    .from('certificates')
+    .select('*')
+    .eq('profile_id', profileId)
+    .eq('file_hash', fileHash)
+    .limit(1)
+
+  if (excludeCertId) {
+    query = query.neq('id', excludeCertId)
+  }
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? dbCertToLocal(data as DbCertificate) : null
+}
+
 // ── Storage ───────────────────────────────────────────────────────
 
 export async function uploadAttachment(
@@ -202,4 +235,90 @@ export async function getAttachmentUrl(storagePath: string): Promise<string> {
 
 export async function deleteAttachment(storagePath: string): Promise<void> {
   await supabase.storage.from('certificates').remove([storagePath])
+}
+
+// ── Roles ─────────────────────────────────────────────────────────
+
+export async function getUserRole(userId: string, email?: string): Promise<UserRole> {
+  const supervisorEmail = process.env.NEXT_PUBLIC_SUPERVISOR_EMAIL
+  if (supervisorEmail && email && email.toLowerCase() === supervisorEmail.toLowerCase()) {
+    return 'supervisor'
+  }
+
+  const { data } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  return ((data as DbUserRole | null)?.role as UserRole) ?? 'student'
+}
+
+// ── Supervisor ────────────────────────────────────────────────────
+
+export async function fetchAllStudentsForSupervisor(): Promise<StudentProfile[]> {
+  const { data: profiles, error } = await supabase
+    .from('student_profiles')
+    .select('*')
+    .order('name', { ascending: true })
+
+  if (error) throw new Error(error.message)
+
+  const result: StudentProfile[] = []
+  for (const profile of (profiles as DbProfile[])) {
+    const { data: certs } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('profile_id', profile.id)
+      .order('created_at', { ascending: true })
+
+    result.push({
+      registration: profile.registration,
+      student: dbProfileToStudent(profile),
+      certificates: (certs as DbCertificate[] ?? []).map(dbCertToLocal),
+      updatedAt: profile.updated_at,
+    })
+  }
+  return result
+}
+
+export async function submitCertificateForReview(certId: number): Promise<void> {
+  const { error } = await supabase
+    .from('certificates')
+    .update({
+      status: 'pending',
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', certId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function submitMultipleCertificatesForReview(certIds: number[]): Promise<void> {
+  if (certIds.length === 0) return
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('certificates')
+    .update({ status: 'pending', submitted_at: now, updated_at: now })
+    .in('id', certIds)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function reviewCertificate(
+  certId: number,
+  status: 'approved' | 'rejected',
+  comment?: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('certificates')
+    .update({
+      status,
+      supervisor_comment: comment ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', certId)
+
+  if (error) throw new Error(error.message)
 }

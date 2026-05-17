@@ -14,6 +14,8 @@ export interface DbProfile {
   name: string
   cpf: string
   course: string
+  turma: string
+  periodo: string
   total_required: number
   updated_at: string
 }
@@ -29,8 +31,19 @@ export interface DbCertificate {
   attachment_name: string | null
   attachment_type: string | null
   attachment_size: number | null
+  file_hash: string | null
   storage_path: string | null
   extracted_data: Record<string, unknown> | null
+  status: string
+  supervisor_comment: string | null
+  submitted_at: string | null
   created_at: string
   updated_at: string
+}
+
+export interface DbUserRole {
+  id: string
+  user_id: string
+  role: string
+  created_at: string
 }
