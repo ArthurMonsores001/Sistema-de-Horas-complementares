@@ -29,3 +29,9 @@ Thumbs.db
 .worktrees/
 .kiro/
 AGENTS.md
+
+claude.md
+skills-lock.json
+docs
+.claude
+.env.example

@@ -19,8 +19,7 @@ const CAT_STYLES = [
 async function extractPDFText(file: File): Promise<string> {
   const pdfjsLib = await import('pdfjs-dist')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
   const buf = await file.arrayBuffer()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

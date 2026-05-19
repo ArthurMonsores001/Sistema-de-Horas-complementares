@@ -35,7 +35,8 @@ function appendSheet(workbook: XLSX.WorkBook, name: string, rows: Array<Array<st
 }
 
 export function exportStudentExcelReport(state: AppState) {
-  const { student, certificates } = state
+  const { student } = state
+  const certificates = state.certificates.filter(c => c.status === 'approved')
   const workbook = XLSX.utils.book_new()
   const usageById = certificateUsage(certificates)
   const totalSubmitted = certificates.reduce((sum, cert) => sum + cert.hours, 0)
@@ -44,14 +45,14 @@ export function exportStudentExcelReport(state: AppState) {
   const required = student.totalRequired || 120
   const progress = required > 0 ? Math.min(100, Math.round((totalEffective / required) * 100)) : 0
 
-  const summarySheet = appendSheet(workbook, 'Resumo', [
+  const summarySheetName = student.registration ? `Resumo — ${student.registration.toUpperCase()}` : 'Resumo'
+  const summarySheet = appendSheet(workbook, summarySheetName, [
     ['Relatório de Horas Complementares'],
     ['Gerado em', new Date().toLocaleString('pt-BR')],
     [],
-    ['Aluno', student.name || 'Não informado'],
     ['Matrícula', student.registration || 'Não informada'],
+    ['Aluno', student.name || 'Não informado'],
     ['Curso', student.course || 'Não informado'],
-    ['CPF', student.cpf || ''],
     [],
     ['Indicador', 'Valor'],
     ['Total necessário', required],

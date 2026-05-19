@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StoreType } from '@/hooks/useStore'
 import { Student } from '@/lib/types'
 import { exportStudentExcelReport } from '@/lib/excelReport'
-import { COURSES } from '@/lib/data'
-import { Download, FileSpreadsheet, LogOut, RotateCcw, Save, Trash2, Upload, Users, RefreshCw, Cloud } from 'lucide-react'
+import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
+import { Download, FileSpreadsheet, LogOut, RotateCcw, Save, RefreshCw, Cloud, GraduationCap } from 'lucide-react'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 
 interface SettingsProps {
   store: StoreType
@@ -20,15 +21,17 @@ function formatCpf(value: string) {
 }
 
 export default function Settings({ store }: SettingsProps) {
-  const [student, setStudent] = useState<Student>(store.state.student)
-  const [profileToLoad, setProfileToLoad] = useState(store.activeRegistration)
+  const initialStudent = store.state.student
+  const initialCourseValid = COURSES.some(c => c.id === initialStudent.course)
+  const [student, setStudent] = useState<Student>(
+    initialCourseValid ? initialStudent : { ...initialStudent, course: 'Engenharia', engineeringType: '' }
+  )
   const [message, setMessage] = useState<{ type: 'ok' | 'warn'; text: string } | null>(null)
-  const importRef = useRef<HTMLInputElement>(null)
-  const savedProfiles = store.getSavedProfiles()
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   useEffect(() => {
-    setStudent(store.state.student)
-    setProfileToLoad(store.activeRegistration)
+    const s = store.state.student
+    const validCourse = COURSES.some(c => c.id === s.course)
+    setStudent(validCourse ? s : { ...s, course: 'Engenharia', engineeringType: '' })
   }, [store.activeRegistration, store.state.student])
 
   const updateField = (field: keyof Student, value: string) => {
@@ -59,52 +62,15 @@ export default function Settings({ store }: SettingsProps) {
   }
 
   const saveStudent = async () => {
+    if (student.course === 'Engenharia' && !student.engineeringType) {
+      setMessage({ type: 'warn', text: 'Selecione o tipo de engenharia antes de salvar.' })
+      return
+    }
     const saved = await store.saveProfile(student)
     setMessage(saved
       ? { type: 'ok', text: `Perfil salvo para a matrícula ${student.registration.trim()}.` }
       : { type: 'warn', text: 'Informe uma matrícula para salvar um perfil único.' }
     )
-  }
-
-  const loadSelectedProfile = () => {
-    if (!profileToLoad) {
-      setMessage({ type: 'warn', text: 'Selecione uma matrícula salva para carregar.' })
-      return
-    }
-    const loaded = store.loadProfile(profileToLoad)
-    setMessage(loaded
-      ? { type: 'ok', text: 'Perfil carregado com sucesso.' }
-      : { type: 'warn', text: 'Não encontrei essa matrícula salva.' }
-    )
-  }
-
-  const deleteSelectedProfile = async () => {
-    if (!profileToLoad) {
-      setMessage({ type: 'warn', text: 'Selecione uma matrícula salva para excluir.' })
-      return
-    }
-    const profile = savedProfiles.find(p => p.registration === profileToLoad)
-    if (!window.confirm(`Excluir o perfil "${profile?.student.name || profileToLoad}" e seus certificados?`)) return
-    const deleted = await store.deleteProfile(profileToLoad)
-    setMessage(deleted
-      ? { type: 'ok', text: 'Perfil excluído.' }
-      : { type: 'warn', text: 'Não foi possível excluir esse perfil.' }
-    )
-  }
-
-  const exportData = () => {
-    const payload = {
-      ...store.exportAllProfiles(),
-      exportedAt: new Date().toISOString(),
-    }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `horas-complementares-backup-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(url)
-    setMessage({ type: 'ok', text: 'Backup exportado em JSON.' })
   }
 
   const exportExcel = () => {
@@ -116,20 +82,6 @@ export default function Settings({ store }: SettingsProps) {
     setMessage({ type: 'ok', text: 'Relatório Excel gerado com sucesso.' })
   }
 
-  const importData = async (file: File) => {
-    try {
-      const text = await file.text()
-      const parsed = JSON.parse(text)
-      if (!parsed || (!parsed.profiles && (!Array.isArray(parsed.certificates) || !parsed.student))) {
-        throw new Error('Arquivo inválido')
-      }
-      store.importData(parsed)
-      setMessage({ type: 'ok', text: 'Backup importado com sucesso.' })
-    } catch {
-      setMessage({ type: 'warn', text: 'Não foi possível importar. Verifique se o arquivo é um backup válido.' })
-    }
-  }
-
   const clearCertificates = () => {
     if (window.confirm('Remover todos os dados locais? Os dados no Supabase serão mantidos.')) {
       store.clearAll()
@@ -137,11 +89,7 @@ export default function Settings({ store }: SettingsProps) {
     }
   }
 
-  const handleLogout = async () => {
-    if (window.confirm('Sair da conta?')) {
-      await store.logout()
-    }
-  }
+  const handleLogout = () => setShowLogoutModal(true)
 
   return (
     <div className="space-y-5">
@@ -156,6 +104,99 @@ export default function Settings({ store }: SettingsProps) {
           {message.text}
         </div>
       )}
+
+      {/* ── Perfil Acadêmico ────────────────────────────────────── */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center gap-2 mb-5">
+          <GraduationCap size={15} className="text-vinho-500" />
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Perfil Acadêmico</div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(['name', 'registration', 'cpf'] as const).map(field => (
+            <label key={field} className="block">
+              <span className="block text-sm font-medium text-gray-700 mb-1.5">
+                {field === 'name' ? 'Nome' : field === 'registration' ? 'Matrícula' : 'CPF'}
+              </span>
+              <input
+                value={student[field]}
+                onChange={e => updateField(field, e.target.value)}
+                maxLength={field === 'cpf' ? 14 : undefined}
+                className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
+              />
+            </label>
+          ))}
+          <label className="block">
+            <span className="block text-sm font-medium text-gray-700 mb-1.5">Curso</span>
+            <select
+              value={student.course}
+              onChange={e => {
+                const next = e.target.value
+                setStudent(prev => ({ ...prev, course: next, engineeringType: next === 'Engenharia' ? prev.engineeringType : '' }))
+              }}
+              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 bg-white"
+            >
+              {COURSES.map(c => (
+                <option key={c.id} value={c.id} disabled={!c.available}>
+                  {c.name}{!c.available ? ' (em breve)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          {student.course === 'Engenharia' && (
+            <label className="block">
+              <span className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de Engenharia</span>
+              <select
+                value={student.engineeringType ?? ''}
+                onChange={e => setStudent(prev => ({ ...prev, engineeringType: e.target.value }))}
+                className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 bg-white"
+              >
+                <option value="">Selecione o tipo...</option>
+                {ENGINEERING_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="block md:col-span-2">
+            <span className="block text-sm font-medium text-gray-700 mb-1.5">Total necessário (horas)</span>
+            <input
+              type="number"
+              min="1"
+              value={student.totalRequired}
+              onChange={e => updateField('totalRequired', e.target.value)}
+              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
+            />
+          </label>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <button
+            onClick={saveStudent}
+            className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
+          >
+            <Save size={15} /> Salvar perfil
+          </button>
+        </div>
+      </section>
+
+      {/* ── Backup ──────────────────────────────────────────────── */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-5">Backup Local</div>
+        <p className="text-xs text-gray-400 mb-3">
+          O relatório inclui apenas certificados aprovados pelo supervisor. Guarde-o com cuidado e evite compartilhar por canais não seguros.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button onClick={exportExcel}
+            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+            <FileSpreadsheet size={15} /> Exportar Excel
+          </button>
+          <button onClick={clearCertificates}
+            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-red-100 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors">
+            <RotateCcw size={15} /> Limpar local
+          </button>
+        </div>
+      </section>
 
       {/* ── Conta Supabase ──────────────────────────────────────── */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -195,99 +236,16 @@ export default function Settings({ store }: SettingsProps) {
         )}
       </section>
 
-      {/* ── Perfis por Matrícula ────────────────────────────────── */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center gap-2 mb-5">
-          <Users size={15} className="text-vinho-500" />
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Perfis por Matrícula</div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3 mb-5">
-          <select value={profileToLoad} onChange={e => setProfileToLoad(e.target.value)}
-            className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100">
-            <option value="">Selecione uma matrícula salva...</option>
-            {savedProfiles.map(p => (
-              <option key={p.registration} value={p.registration}>
-                {p.student.registration} · {p.student.name || 'Sem nome'} · {p.certificates.length} certificados
-              </option>
-            ))}
-          </select>
-          <button onClick={loadSelectedProfile}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-            Carregar
-          </button>
-          <button onClick={deleteSelectedProfile}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-red-100 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors">
-            <Trash2 size={14} /> Excluir
-          </button>
-        </div>
-
-        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Perfil Acadêmico</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(['name', 'registration', 'cpf', 'turma', 'periodo'] as const).map(field => (
-            <label key={field} className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1.5">
-                {field === 'name' ? 'Nome'
-                  : field === 'registration' ? 'Matrícula'
-                  : field === 'cpf' ? 'CPF'
-                  : field === 'turma' ? 'Turma'
-                  : 'Período'}
-              </span>
-              <input value={student[field]} onChange={e => updateField(field, e.target.value)}
-                maxLength={field === 'cpf' ? 14 : undefined}
-                className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100" />
-            </label>
-          ))}
-          <label className="block">
-            <span className="block text-sm font-medium text-gray-700 mb-1.5">Curso</span>
-            <select value={student.course} onChange={e => updateField('course', e.target.value)}
-              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 bg-white">
-              {COURSES.map(c => (
-                <option key={c.id} value={c.id} disabled={!c.available}>
-                  {c.name}{!c.available ? ' (em breve)' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="block text-sm font-medium text-gray-700 mb-1.5">Total necessário (horas)</span>
-            <input type="number" min="1" value={student.totalRequired} onChange={e => updateField('totalRequired', e.target.value)}
-              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100" />
-          </label>
-        </div>
-
-        <div className="flex justify-end mt-5">
-          <button onClick={saveStudent}
-            className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors">
-            <Save size={15} /> Salvar perfil por matrícula
-          </button>
-        </div>
-      </section>
-
-      {/* ── Backup ──────────────────────────────────────────────── */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-5">Backup Local</div>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <button onClick={exportExcel}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-            <FileSpreadsheet size={15} /> Exportar Excel
-          </button>
-          <button onClick={exportData}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-            <Download size={15} /> Exportar JSON
-          </button>
-          <button onClick={() => importRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-            <Upload size={15} /> Importar JSON
-          </button>
-          <button onClick={clearCertificates}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg border border-red-100 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors">
-            <RotateCcw size={15} /> Limpar local
-          </button>
-        </div>
-        <input ref={importRef} type="file" accept="application/json,.json" className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) importData(f); e.target.value = '' }} />
-      </section>
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        email={store.authUser?.email}
+        context="student"
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          setShowLogoutModal(false)
+          store.logout()
+        }}
+      />
     </div>
   )
 }

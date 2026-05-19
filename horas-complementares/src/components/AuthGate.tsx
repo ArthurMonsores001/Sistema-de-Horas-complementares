@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { StoreType } from '@/hooks/useStore'
 import { signIn, signUp } from '@/lib/api'
-import { COURSES } from '@/lib/data'
+import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
 import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft } from 'lucide-react'
 
 interface AuthGateProps {
@@ -20,8 +20,22 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
   const [name, setName] = useState('')
   const [registration, setRegistration] = useState('')
   const [course, setCourse] = useState('')
+  const [engineeringType, setEngineeringType] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!store.authUser) {
+      setEmail('')
+      setPassword('')
+      setName('')
+      setRegistration('')
+      setCourse('')
+      setEngineeringType('')
+      setMessage('')
+      setMode('login')
+    }
+  }, [store.authUser])
 
   const switchArea = (next: 'student' | 'supervisor') => {
     setArea(next)
@@ -36,13 +50,19 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
     setLoading(true)
     setMessage('')
 
+    let signUpSucceeded = false
     try {
       if (mode === 'register' && (!name.trim() || !registration.trim() || !course.trim())) {
         setMessage('Informe nome, matrícula e curso para criar a conta.')
         return
       }
+      if (mode === 'register' && course === 'Engenharia' && !engineeringType) {
+        setMessage('Selecione o tipo de engenharia.')
+        return
+      }
 
       const user = mode === 'login' ? await signIn(email, password) : await signUp(email, password)
+      if (mode === 'register') signUpSucceeded = true
       const role = await store.onAuthSuccess(user)
 
       if (area === 'supervisor' && role !== 'supervisor') {
@@ -57,8 +77,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
           registration: registration.trim(),
           cpf: '',
           course: course.trim(),
-          turma: '',
-          periodo: '',
+          engineeringType: course === 'Engenharia' ? engineeringType : undefined,
           totalRequired: 120,
         }, user)
 
@@ -67,6 +86,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         }
       }
     } catch (error) {
+      if (signUpSucceeded) await store.logout()
       setMessage(error instanceof Error ? error.message : 'Não foi possível entrar.')
     } finally {
       setLoading(false)
@@ -118,7 +138,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
               {isSupervisor ? <ShieldCheck size={22} /> : <LockKeyhole size={22} />}
             </div>
             <h1 className="text-xl font-bold">
-              {isSupervisor ? 'Área do Supervisor' : mode === 'login' ? 'Faça Login' : 'Criar conta'}
+              {isSupervisor ? 'Área do Supervisor' : mode === 'login' ? 'Seja Bem-Vindo Aluno!' : 'Criar conta'}
             </h1>
             <p className="text-sm mt-1 opacity-80">
               {isSupervisor
@@ -173,14 +193,15 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                       <span className="block text-sm font-medium text-gray-700 mb-1.5">Matrícula</span>
                       <input
                         required type="text" value={registration} onChange={e => setRegistration(e.target.value)}
-                        placeholder="Ex: 20240001"
+                        placeholder="Ex: 202400000"
                         className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
                       />
                     </label>
                     <label className="block">
                       <span className="block text-sm font-medium text-gray-700 mb-1.5">Curso</span>
                       <select
-                        required value={course} onChange={e => setCourse(e.target.value)}
+                        required value={course}
+                        onChange={e => { setCourse(e.target.value); setEngineeringType('') }}
                         className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none bg-white"
                       >
                         <option value="" disabled>Selecione...</option>
@@ -192,6 +213,20 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                       </select>
                     </label>
                   </div>
+                  {course === 'Engenharia' && (
+                    <label className="block">
+                      <span className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de Engenharia</span>
+                      <select
+                        required value={engineeringType} onChange={e => setEngineeringType(e.target.value)}
+                        className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none bg-white"
+                      >
+                        <option value="" disabled>Selecione o tipo...</option>
+                        {ENGINEERING_TYPES.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </>
               )}
 
