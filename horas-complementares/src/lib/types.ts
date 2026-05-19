@@ -11,8 +11,7 @@ export interface Student {
   registration: string
   cpf: string
   course: string
-  turma: string
-  periodo: string
+  engineeringType?: string
   totalRequired: number
 }
 

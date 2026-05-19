@@ -23,15 +23,15 @@ import {
 } from '@/lib/api'
 
 const STORAGE_KEY = 'hc-app-v3'
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000 // 12 horas
 
 const DEFAULT_STUDENT: Student = {
   name: '',
   registration: '',
   cpf: '',
   course: 'Engenharia',
-  turma: '',
-  periodo: '',
-  totalRequired: 120,
+  engineeringType: '',
+  totalRequired: 180,
 }
 
 const DEFAULT_STATE: AppState = {
@@ -44,6 +44,7 @@ interface PersistedData {
   activeRegistration: string
   draft: AppState
   profiles: Record<string, StudentProfile>
+  savedAt?: number
 }
 
 function normalizeReg(r: string) {
@@ -52,7 +53,18 @@ function normalizeReg(r: string) {
 
 function persist(reg: string, draft: AppState, profiles: Record<string, StudentProfile>) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 3, activeRegistration: reg, draft, profiles }))
+    // CPF is not cached locally — always refreshed from Supabase on login
+    const safeDraft = { ...draft, student: { ...draft.student, cpf: '' } }
+    const safeProfiles = Object.fromEntries(
+      Object.entries(profiles).map(([k, p]) => [k, { ...p, student: { ...p.student, cpf: '' } }])
+    )
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 3,
+      activeRegistration: reg,
+      draft: safeDraft,
+      profiles: safeProfiles,
+      savedAt: Date.now(),
+    }))
   } catch { /* quota */ }
 }
 
@@ -81,6 +93,11 @@ function scopeStateToProfile(
 function computeUsage(certs: Certificate[]) {
   const out: Record<number, { effectiveHours: number; excessHours: number }> = {}
   for (const c of certs) {
+    // Só conta se aprovado pelo supervisor. Sem status = dado anterior ao fluxo de avaliação, conta normalmente.
+    if (c.status && c.status !== 'approved') {
+      out[c.id] = { effectiveHours: 0, excessHours: 0 }
+      continue
+    }
     const act = ACTIVITIES.find(a => a.id === c.activityId)
     const limit = act?.maxHours ?? c.hours
     const eff = Math.min(c.hours, limit)
@@ -110,14 +127,19 @@ export function useStore() {
   // ── Hydration: local storage + Supabase session ───────────────
   useEffect(() => {
     const init = async () => {
-      // Load local cache first (instant UI)
+      // Load local cache first (instant UI) — reject if expired
       try {
         const raw = localStorage.getItem(STORAGE_KEY)
         if (raw) {
           const p = JSON.parse(raw) as PersistedData
-          setProfiles(p.profiles ?? {})
-          setActiveRegistration(p.activeRegistration ?? '')
-          setState(p.draft ?? DEFAULT_STATE)
+          const expired = !p.savedAt || (Date.now() - p.savedAt > CACHE_TTL_MS)
+          if (expired) {
+            localStorage.removeItem(STORAGE_KEY)
+          } else {
+            setProfiles(p.profiles ?? {})
+            setActiveRegistration(p.activeRegistration ?? '')
+            setState(p.draft ?? DEFAULT_STATE)
+          }
         }
       } catch { /* ignore */ }
 
@@ -318,8 +340,18 @@ export function useStore() {
         setApiError('')
         return true
       } catch (err) {
+        // Rollback optimistic insert
+        setState(state)
+        setProfiles(profiles)
+        setActiveRegistration(activeRegistration)
+        persist(activeRegistration, state, profiles)
         setApiStatus('error')
-        setApiError(err instanceof Error ? err.message : 'Erro ao salvar certificado.')
+        const msg = err instanceof Error ? err.message : ''
+        if (msg.includes('duplicate key') || msg.includes('unique constraint')) {
+          setApiError('Este certificado já foi cadastrado anteriormente.')
+        } else {
+          setApiError(msg || 'Erro ao salvar certificado.')
+        }
         return false
       }
     },
@@ -365,6 +397,10 @@ export function useStore() {
         if (candidate.attachment?.fileHash) {
           const remoteDuplicate = await findCertificateByFileHash(profileRow.id, candidate.attachment.fileHash, id)
           if (remoteDuplicate) {
+            setState(state)
+            setProfiles(profiles)
+            setActiveRegistration(activeRegistration)
+            persist(activeRegistration, state, profiles)
             setApiStatus('online')
             setApiError(duplicateMessage(remoteDuplicate))
             return false
@@ -375,8 +411,18 @@ export function useStore() {
         setApiError('')
         return true
       } catch (err) {
+        // Rollback optimistic update
+        setState(state)
+        setProfiles(profiles)
+        setActiveRegistration(activeRegistration)
+        persist(activeRegistration, state, profiles)
         setApiStatus('error')
-        setApiError(err instanceof Error ? err.message : 'Erro ao atualizar certificado.')
+        const msg = err instanceof Error ? err.message : ''
+        if (msg.includes('duplicate key') || msg.includes('unique constraint')) {
+          setApiError('Este certificado já foi cadastrado anteriormente.')
+        } else {
+          setApiError(msg || 'Erro ao atualizar certificado.')
+        }
         return false
       }
     },
@@ -400,6 +446,11 @@ export function useStore() {
           setApiStatus('online')
           setApiError('')
         } catch (err) {
+          // Rollback: restore certificate that failed to delete remotely
+          setState(state)
+          setProfiles(profiles)
+          setActiveRegistration(activeRegistration)
+          persist(activeRegistration, state, profiles)
           setApiStatus('error')
           setApiError(err instanceof Error ? err.message : 'Erro ao excluir certificado no Supabase.')
         }

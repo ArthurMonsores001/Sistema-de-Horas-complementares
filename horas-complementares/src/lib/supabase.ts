@@ -12,10 +12,9 @@ export interface DbProfile {
   user_id: string
   registration: string
   name: string
-  cpf: string
+  cpf?: string
   course: string
-  turma: string
-  periodo: string
+  engineering_type: string | null
   total_required: number
   updated_at: string
 }

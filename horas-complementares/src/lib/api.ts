@@ -6,6 +6,10 @@
 import { supabase, DbProfile, DbCertificate, DbUserRole } from './supabase'
 import { Certificate, CertificateStatus, Student, StudentProfile, UserRole } from './types'
 
+const PROFILE_SELECT = 'id,user_id,registration,name,cpf,course,engineering_type,total_required,updated_at'
+// Supervisor não precisa ver CPF dos alunos — menor superfície de exposição
+const SUPERVISOR_PROFILE_SELECT = 'id,user_id,registration,name,course,engineering_type,total_required,updated_at'
+
 // ── Auth ──────────────────────────────────────────────────────────
 
 export interface AuthUser {
@@ -42,10 +46,9 @@ function dbProfileToStudent(row: DbProfile): Student {
   return {
     name: row.name,
     registration: row.registration,
-    cpf: row.cpf,
+    cpf: row.cpf ?? '',
     course: row.course,
-    turma: row.turma ?? '',
-    periodo: row.periodo ?? '',
+    engineeringType: row.engineering_type ?? undefined,
     totalRequired: row.total_required,
   }
 }
@@ -53,28 +56,20 @@ function dbProfileToStudent(row: DbProfile): Student {
 export async function fetchAllProfiles(userId: string): Promise<StudentProfile[]> {
   const { data: profiles, error } = await supabase
     .from('student_profiles')
-    .select('*')
+    .select(`${PROFILE_SELECT}, certificates(*)`)
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
 
   if (error) throw new Error(error.message)
 
-  const result: StudentProfile[] = []
-  for (const profile of (profiles as DbProfile[])) {
-    const { data: certs } = await supabase
-      .from('certificates')
-      .select('*')
-      .eq('profile_id', profile.id)
-      .order('created_at', { ascending: true })
-
-    result.push({
-      registration: profile.registration,
-      student: dbProfileToStudent(profile),
-      certificates: (certs as DbCertificate[] ?? []).map(dbCertToLocal),
-      updatedAt: profile.updated_at,
-    })
-  }
-  return result
+  return (profiles as (DbProfile & { certificates: DbCertificate[] })[]).map(profile => ({
+    registration: profile.registration,
+    student: dbProfileToStudent(profile),
+    certificates: (profile.certificates ?? [])
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map(dbCertToLocal),
+    updatedAt: profile.updated_at,
+  }))
 }
 
 export async function upsertProfile(student: Student, userId: string): Promise<DbProfile> {
@@ -86,12 +81,11 @@ export async function upsertProfile(student: Student, userId: string): Promise<D
       name: student.name,
       cpf: student.cpf,
       course: student.course,
-      turma: student.turma,
-      periodo: student.periodo,
+      engineering_type: student.course === 'Engenharia' ? (student.engineeringType ?? null) : null,
       total_required: student.totalRequired,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,registration' })
-    .select()
+    .select(PROFILE_SELECT)
     .single()
 
   if (error) throw new Error(error.message)
@@ -227,7 +221,7 @@ export async function uploadAttachment(
 export async function getAttachmentUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from('certificates')
-    .createSignedUrl(storagePath, 60 * 60) // 1 hour
+    .createSignedUrl(storagePath, 5 * 60) // 5 minutes — shorter TTL reduces exposure window
 
   if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Erro ao obter URL')
   return data.signedUrl
@@ -259,7 +253,7 @@ export async function getUserRole(userId: string, email?: string): Promise<UserR
 export async function fetchAllStudentsForSupervisor(): Promise<StudentProfile[]> {
   const { data: profiles, error } = await supabase
     .from('student_profiles')
-    .select('*')
+    .select(SUPERVISOR_PROFILE_SELECT)
     .order('name', { ascending: true })
 
   if (error) throw new Error(error.message)

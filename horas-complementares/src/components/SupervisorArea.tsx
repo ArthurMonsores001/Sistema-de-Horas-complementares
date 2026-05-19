@@ -5,6 +5,7 @@ import { StoreType } from '@/hooks/useStore'
 import { fetchAllStudentsForSupervisor, reviewCertificate, getAttachmentUrl } from '@/lib/api'
 import { StudentProfile, Certificate, CertificateStatus } from '@/lib/types'
 import { ACTIVITIES, CATEGORIES } from '@/lib/data'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import {
   ShieldCheck, LogOut, Search, Users, Clock, RefreshCw, ChevronRight,
   GraduationCap, ArrowLeft, CheckCircle2, XCircle, FileText, ExternalLink,
@@ -66,10 +67,6 @@ function StudentEvalView({
     () => profile.certificates.filter(c => c.status === 'approved' || c.status === 'rejected'),
     [profile],
   )
-  const others = useMemo(
-    () => profile.certificates.filter(c => !c.status || c.status === 'draft'),
-    [profile],
-  )
 
   const getEval = (id: number): EvalState =>
     evalMap[id] ?? { decision: null, comment: '', saving: false, done: false, editing: false }
@@ -96,8 +93,14 @@ function StudentEvalView({
     if (!cert.attachment?.storagePath) return
     setLoadingUrl(cert.id)
     try {
-      const url = await getAttachmentUrl(cert.attachment.storagePath)
-      window.open(url, '_blank')
+      const signedUrl = await getAttachmentUrl(cert.attachment.storagePath)
+      const response = await fetch(signedUrl)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const tab = window.open(blobUrl, '_blank')
+      // revoke after the browser has had time to load the content
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+      if (!tab) window.location.href = blobUrl
     } finally {
       setLoadingUrl(null)
     }
@@ -288,9 +291,9 @@ function StudentEvalView({
               <p className="font-bold text-gray-800">{profile.student.name || '(sem nome)'}</p>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                 <span className="text-xs text-gray-400">Mat.: <span className="text-gray-600">{profile.student.registration}</span></span>
-                {profile.student.turma && <span className="text-xs text-gray-400">Turma: <span className="text-gray-600">{profile.student.turma}</span></span>}
-                {profile.student.periodo && <span className="text-xs text-gray-400">Período: <span className="text-gray-600">{profile.student.periodo}</span></span>}
-                <span className="text-xs text-gray-400">Curso: <span className="text-gray-600">{profile.student.course}</span></span>
+                <span className="text-xs text-gray-400">Curso: <span className="text-gray-600">
+                  {profile.student.course}{profile.student.engineeringType ? ` · ${profile.student.engineeringType}` : ''}
+                </span></span>
               </div>
             </div>
           </div>
@@ -299,7 +302,7 @@ function StudentEvalView({
         {/* Pending certificates */}
         {pending.length > 0 && (
           <section className="mb-6">
-            <h2 className="text-sm font-bold text-amber-700 flex items-center gap-1.5 mb-3">
+            <h2 className="text-sm font-bold text-vinho-700 flex items-center gap-1.5 mb-3">
               <Clock size={15} />
               Aguardando avaliação ({pending.length})
             </h2>
@@ -318,19 +321,6 @@ function StudentEvalView({
             </h2>
             <div className="flex flex-col gap-3">
               {evaluated.map(cert => renderCert(cert, false))}
-            </div>
-          </section>
-        )}
-
-        {/* Draft / other */}
-        {others.length > 0 && (
-          <section>
-            <h2 className="text-sm font-bold text-gray-400 flex items-center gap-1.5 mb-3">
-              <FileText size={15} />
-              Rascunhos ({others.length})
-            </h2>
-            <div className="flex flex-col gap-3">
-              {others.map(cert => renderCert(cert, false))}
             </div>
           </section>
         )}
@@ -354,6 +344,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterTab>('pending')
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const loadStudents = async () => {
     setLoading(true)
@@ -399,11 +390,6 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
   const pendingCount = (p: StudentProfile) =>
     p.certificates.filter(c => c.status === 'pending').length
 
-  const totalPending = useMemo(
-    () => profiles.reduce((sum, p) => sum + pendingCount(p), 0),
-    [profiles],
-  )
-
   const studentsWithPending = useMemo(
     () => profiles.filter(p => pendingCount(p) > 0).length,
     [profiles],
@@ -446,7 +432,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-400 hidden sm:block">{store.authUser?.email}</span>
             <button
-              onClick={store.logout}
+              onClick={() => setShowLogoutModal(true)}
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"
             >
               <LogOut size={15} />
@@ -458,7 +444,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-vinho-50 flex items-center justify-center flex-shrink-0">
               <Users size={18} className="text-vinho-500" />
@@ -469,15 +455,6 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <Clock size={18} className="text-amber-500" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-medium">Aguardando avaliação</p>
-              <p className="text-xl font-bold text-gray-800">{totalPending}</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3 col-span-2 sm:col-span-1">
             <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
               <GraduationCap size={18} className="text-green-600" />
             </div>
@@ -497,14 +474,14 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nome ou matrícula..."
-              className="w-full pl-9 pr-4 h-10 rounded-lg border border-gray-200 text-sm text-gray-800 focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none bg-white"
+              className="w-full pl-9 pr-4 h-10 rounded-lg border border-gray-200 text-sm text-gray-800 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none bg-white"
             />
           </div>
           <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1">
             <button
               onClick={() => setFilter('pending')}
               className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                filter === 'pending' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
+                filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
             >
               Com pendências
             </button>
@@ -530,7 +507,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-vinho-500 border-t-transparent rounded-full animate-spin" />
               <span className="text-sm text-gray-400">Carregando alunos...</span>
             </div>
           </div>
@@ -559,7 +536,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
                 <button
                   key={profile.registration}
                   onClick={() => setSelectedProfile(profile)}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-4 hover:border-green-200 hover:shadow-md transition-all cursor-pointer group text-left w-full"
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-4 hover:border-vinho-200 hover:shadow-md transition-all cursor-pointer group text-left w-full"
                 >
                   <div className="w-10 h-10 rounded-full bg-vinho-100 flex items-center justify-center flex-shrink-0">
                     <span className="text-vinho-600 font-bold text-sm">
@@ -570,14 +547,14 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
                     <p className="font-semibold text-gray-800 truncate">{profile.student.name || '(sem nome)'}</p>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                       <span className="text-xs text-gray-400">Mat.: <span className="text-gray-600">{profile.student.registration}</span></span>
-                      {profile.student.turma && <span className="text-xs text-gray-400">Turma: <span className="text-gray-600">{profile.student.turma}</span></span>}
-                      {profile.student.periodo && <span className="text-xs text-gray-400">Período: <span className="text-gray-600">{profile.student.periodo}</span></span>}
-                      <span className="text-xs text-gray-400">Curso: <span className="text-gray-600">{profile.student.course}</span></span>
+                      <span className="text-xs text-gray-400">Curso: <span className="text-gray-600">
+                        {profile.student.course}{profile.student.engineeringType ? ` · ${profile.student.engineeringType}` : ''}
+                      </span></span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {np > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-vinho-100 text-vinho-700">
                         <Clock size={11} />
                         {np} pendente{np > 1 ? 's' : ''}
                       </span>
@@ -593,7 +570,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
                       </span>
                     )}
                     <span className="text-xs text-gray-400">{total} cert.</span>
-                    <ChevronRight size={16} className="text-gray-300 group-hover:text-green-500 transition-colors" />
+                    <ChevronRight size={16} className="text-gray-300 group-hover:text-vinho-500 transition-colors" />
                   </div>
                 </button>
               )
@@ -601,6 +578,17 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           </div>
         )}
       </main>
+
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        email={store.authUser?.email}
+        context="supervisor"
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          setShowLogoutModal(false)
+          store.logout()
+        }}
+      />
     </div>
   )
 }

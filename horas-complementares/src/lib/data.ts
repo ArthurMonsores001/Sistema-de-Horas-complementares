@@ -14,6 +14,15 @@ export const COURSES: CourseOption[] = [
   { id: 'Administração', name: 'Administração', available: false },
 ]
 
+export const ENGINEERING_TYPES = [
+  'Software',
+  'Química',
+  'Elétrica',
+  'Civil',
+] as const
+
+export type EngineeringType = typeof ENGINEERING_TYPES[number]
+
 export const CATEGORIES: Category[] = [
   {
     id: 0,

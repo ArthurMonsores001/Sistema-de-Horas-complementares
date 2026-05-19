@@ -633,25 +633,11 @@ export default function Certificates({ store }: CertificatesProps) {
         const { activity, category } = getCertificateMeta(viewing)
         const usage = usageById[viewing.id] ?? { effectiveHours: viewing.hours, excessHours: 0 }
         const hasAttachment = Boolean(viewing.attachment?.dataUrl || viewing.attachment?.storagePath)
-        const analysis = viewing.extractedData?.analysis
-        const suggestedActivity = analysis?.suggestedActivityId
-          ? ACTIVITIES.find(item => item.id === analysis.suggestedActivityId)
-          : null
-        const suggestedCategory = analysis?.suggestedCategoryId !== undefined
-          ? CATEGORIES[analysis.suggestedCategoryId]
-          : null
-        const validSignals = [
-          { label: 'Arquivo anexado', ok: hasAttachment },
-          { label: 'Atividade selecionada', ok: Boolean(activity) },
-          { label: 'Horas informadas', ok: viewing.hours > 0 },
-          { label: 'Dentro do limite da atividade', ok: usage.excessHours === 0 },
-          { label: 'Classificação automática', ok: Boolean(analysis && !analysis.needsReview) },
-        ]
 
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4 py-6">
-            <div className="w-full max-w-6xl max-h-[92vh] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
-              <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-3 py-4 sm:px-4 sm:py-6">
+            <div className="w-full max-w-4xl max-h-[94vh] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
+              <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100 flex-shrink-0">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-gray-900 truncate">Visualizar certificado</h2>
                   <p className="text-sm text-gray-500 mt-0.5 truncate">
@@ -668,8 +654,8 @@ export default function Certificates({ store }: CertificatesProps) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0 overflow-y-auto lg:overflow-hidden">
-                <div className="bg-slate-100 min-h-[420px] lg:min-h-0 lg:h-[calc(92vh-73px)] p-4">
+              <div className="flex flex-col md:grid md:grid-cols-[1fr_260px] min-h-0 overflow-y-auto md:overflow-hidden flex-1">
+                <div className="bg-slate-100 min-h-[300px] md:h-full md:overflow-hidden p-4 flex-shrink-0 md:flex-shrink">
                   {hasAttachment && viewing.attachment && (
                     <AttachmentPreview
                       attachment={viewing.attachment}
@@ -678,35 +664,17 @@ export default function Certificates({ store }: CertificatesProps) {
                   )}
 
                   {!hasAttachment && (
-                    <div className="h-full min-h-[420px] flex items-center justify-center text-center">
+                    <div className="h-full min-h-[300px] flex items-center justify-center text-center">
                       <div>
                         <FileText size={42} className="mx-auto text-slate-400 mb-3" />
                         <p className="text-sm font-semibold text-slate-700">Nenhum arquivo anexado</p>
-                        <p className="text-xs text-slate-400 mt-1">Este certificado foi cadastrado antes da visualização de arquivos ou manualmente.</p>
+                        <p className="text-xs text-slate-400 mt-1">Este certificado foi cadastrado sem arquivo ou manualmente.</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <aside className="p-5 border-t lg:border-t-0 lg:border-l border-gray-100 space-y-5">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Conferência</div>
-                    <div className="space-y-2">
-                      {validSignals.map(signal => (
-                        <div key={signal.label} className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-gray-600">{signal.label}</span>
-                          <span className={[
-                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold',
-                            signal.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700',
-                          ].join(' ')}>
-                            {signal.ok ? <Check size={12} /> : <AlertTriangle size={12} />}
-                            {signal.ok ? 'Ok' : 'Revisar'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
+                <aside className="p-5 border-t md:border-t-0 md:border-l border-gray-100 space-y-5 md:overflow-y-auto">
                   <div className="rounded-lg bg-gray-50 p-3 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">Horas enviadas</span>
@@ -718,70 +686,27 @@ export default function Certificates({ store }: CertificatesProps) {
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">Excedentes</span>
-                      <strong className={usage.excessHours > 0 ? 'text-red-600' : 'text-gray-900'}>{usage.excessHours}h</strong>
+                      <strong className={usage.excessHours > 0 ? 'text-red-600' : 'text-gray-400'}>{usage.excessHours}h</strong>
                     </div>
                   </div>
 
-                  {analysis && (
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Classificação sugerida</div>
-                        <span className={[
-                          'text-xs font-semibold px-2 py-0.5 rounded-full',
-                          analysis.confidenceLabel === 'Alta' ? 'bg-emerald-50 text-emerald-700' :
-                          analysis.confidenceLabel === 'Média' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700',
-                        ].join(' ')}>
-                          {analysis.confidenceLabel} · {Math.round(analysis.confidence * 100)}%
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Avaliação</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-gray-500">Status</span>
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${STATUS_CONFIG[viewing.status ?? 'draft'].className}`}>
+                          {STATUS_CONFIG[viewing.status ?? 'draft'].label}
                         </span>
                       </div>
-
-                      <dl className="space-y-2 text-sm">
-                        <div>
-                          <dt className="text-gray-400">Tipo detectado</dt>
-                          <dd className="font-semibold text-gray-800">{analysis.detectedTypeLabel}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-gray-400">Categoria sugerida</dt>
-                          <dd className="font-semibold text-gray-800">{suggestedCategory?.name ?? 'Não identificada'}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-gray-400">Atividade sugerida</dt>
-                          <dd className="font-semibold text-gray-800">{suggestedActivity?.name ?? 'Não identificada'}</dd>
-                        </div>
-                      </dl>
-
-                      {analysis.needsReview && (
-                        <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                          <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                          <span>Classificação com confiança limitada. Revise categoria e atividade antes de validar.</span>
-                        </div>
-                      )}
-
-                      {analysis.matchedKeywords.length > 0 && (
-                        <div className="mt-3">
-                          <div className="text-xs font-semibold text-gray-400 mb-2">Palavras encontradas</div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {analysis.matchedKeywords.map(keyword => (
-                              <span key={keyword} className="text-[11px] font-medium text-vinho-700 bg-vinho-50 px-2 py-0.5 rounded-full">
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {analysis.evidence.length > 0 && (
-                        <div className="mt-3">
-                          <div className="text-xs font-semibold text-gray-400 mb-2">Evidências</div>
-                          <ul className="space-y-1 text-xs text-gray-500">
-                            {analysis.evidence.map(item => (
-                              <li key={item}>• {item}</li>
-                            ))}
-                          </ul>
+                      {viewing.supervisorComment && (
+                        <div className="flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                          <MessageSquare size={13} className="flex-shrink-0 mt-0.5 text-gray-400" />
+                          <span>{viewing.supervisorComment}</span>
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
 
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Dados cadastrados</div>
@@ -806,7 +731,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   </div>
 
                   {viewing.attachment?.dataUrl && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <a
                         href={viewing.attachment.dataUrl}
                         target="_blank"
@@ -828,7 +753,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   {viewing.extractedData?.text && (
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Texto extraído</div>
-                      <div className="max-h-40 overflow-y-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-500 font-mono leading-relaxed break-words">
+                      <div className="max-h-48 overflow-y-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-500 font-mono leading-relaxed break-words">
                         {viewing.extractedData.text}
                       </div>
                     </div>
