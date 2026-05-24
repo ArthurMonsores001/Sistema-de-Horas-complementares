@@ -179,9 +179,11 @@ export default function Certificates({ store }: CertificatesProps) {
   const [editing, setEditing] = useState<Certificate | null>(null)
   const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [viewing, setViewing] = useState<Certificate | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Certificate | null>(null)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const usageById = store.getCertificateUsage()
 
   const submittableCerts = store.state.certificates.filter(
@@ -253,6 +255,14 @@ export default function Certificates({ store }: CertificatesProps) {
       location: editForm.location.trim(),
     })
     closeEdit()
+  }
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
+    await store.deleteCertificate(pendingDelete.id)
+    setDeleting(false)
+    setPendingDelete(null)
   }
 
   const filtered = useMemo(() => {
@@ -402,11 +412,7 @@ export default function Certificates({ store }: CertificatesProps) {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.confirm('Excluir este certificado?')) {
-                        store.deleteCertificate(cert.id)
-                      }
-                    }}
+                    onClick={() => setPendingDelete(cert)}
                     className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0"
                     aria-label="Excluir certificado"
                   >
@@ -506,6 +512,90 @@ export default function Certificates({ store }: CertificatesProps) {
           </div>
         </div>
       )}
+
+      {pendingDelete && (() => {
+        const { activity, category, style } = getCertificateMeta(pendingDelete)
+        const usage = usageById[pendingDelete.id] ?? { effectiveHours: pendingDelete.hours, excessHours: 0 }
+
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-red-100 bg-white shadow-2xl">
+              <div className="border-b border-red-100 bg-gradient-to-r from-red-50 via-white to-red-100 px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                      <Trash2 size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-gray-900">Excluir certificado</h2>
+                      <p className="mt-0.5 text-sm text-gray-500">
+                        Esta ação remove o certificado da sua lista imediatamente.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => !deleting && setPendingDelete(null)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/80 bg-white/70 text-gray-400 hover:bg-white hover:text-gray-700"
+                    aria-label="Fechar alerta de exclusão"
+                    disabled={deleting}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="rounded-xl border border-gray-100 bg-slate-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-lg ${style.badge}`}>
+                      {category.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{activity?.name ?? 'Atividade'}</p>
+                      <p className="mt-1 break-words text-sm text-gray-500">{pendingDelete.description}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-600">
+                          {usage.effectiveHours}h válidas
+                        </span>
+                        <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-600">
+                          {formatDate(pendingDelete.date)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-sm leading-6 text-gray-500">
+                  Se este certificado já foi enviado para avaliação, ele precisará ser anexado novamente caso você queira reenviá-lo depois.
+                </p>
+
+                <div className="mt-5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(null)}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+                    disabled={deleting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDelete}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                    disabled={deleting}
+                  >
+                    {deleting
+                      ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Excluindo...</>
+                      : <><Trash2 size={15} /> Excluir agora</>
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {editing && editForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">

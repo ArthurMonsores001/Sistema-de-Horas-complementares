@@ -213,17 +213,18 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
         setStatus({ type: 'warn', msg: 'Não foi possível extrair o texto. Preencha os dados manualmente.' })
       }
     } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
-      Promise.all([fileToDataUrl(file), getFileHash(file)]).then(([dataUrl, fileHash]) => {
+      try {
+        const [dataUrl, fileHash] = await Promise.all([fileToDataUrl(file), getFileHash(file)])
         setPreviewSrc(dataUrl)
         const nextAttachment = { name: file.name, type: file.type || `image/${ext}`, size: file.size, fileHash, dataUrl }
         setAttachment(nextAttachment)
         if (!checkDuplicateAttachment(nextAttachment)) {
           setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo.' })
         }
-      }).catch(() => {
+      } catch {
         setIsDuplicateFile(false)
         setStatus({ type: 'warn', msg: 'Não foi possível carregar a imagem. Tente outro arquivo.' })
-      })
+      }
     } else {
       setIsDuplicateFile(false)
       setStatus({ type: 'warn', msg: 'Formato não suportado. Use PDF, PNG ou JPG.' })
