@@ -92,11 +92,12 @@ export async function upsertProfile(student: Student, userId: string): Promise<D
   return data as DbProfile
 }
 
-export async function deleteProfileRemote(registration: string): Promise<void> {
+export async function deleteProfileRemote(registration: string, userId: string): Promise<void> {
   const { error } = await supabase
     .from('student_profiles')
     .delete()
     .eq('registration', registration.trim().toLowerCase())
+    .eq('user_id', userId)
 
   if (error) throw new Error(error.message)
 }
@@ -253,27 +254,19 @@ export async function getUserRole(userId: string, email?: string): Promise<UserR
 export async function fetchAllStudentsForSupervisor(): Promise<StudentProfile[]> {
   const { data: profiles, error } = await supabase
     .from('student_profiles')
-    .select(SUPERVISOR_PROFILE_SELECT)
+    .select(`${SUPERVISOR_PROFILE_SELECT}, certificates(*)`)
     .order('name', { ascending: true })
 
   if (error) throw new Error(error.message)
 
-  const result: StudentProfile[] = []
-  for (const profile of (profiles as DbProfile[])) {
-    const { data: certs } = await supabase
-      .from('certificates')
-      .select('*')
-      .eq('profile_id', profile.id)
-      .order('created_at', { ascending: true })
-
-    result.push({
-      registration: profile.registration,
-      student: dbProfileToStudent(profile),
-      certificates: (certs as DbCertificate[] ?? []).map(dbCertToLocal),
-      updatedAt: profile.updated_at,
-    })
-  }
-  return result
+  return (profiles as (DbProfile & { certificates: DbCertificate[] })[]).map(profile => ({
+    registration: profile.registration,
+    student: dbProfileToStudent(profile),
+    certificates: (profile.certificates ?? [])
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map(dbCertToLocal),
+    updatedAt: profile.updated_at,
+  }))
 }
 
 export async function submitCertificateForReview(certId: number): Promise<void> {

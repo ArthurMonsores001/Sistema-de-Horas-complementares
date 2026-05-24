@@ -324,7 +324,8 @@ export function useStore() {
           savedCert = { ...savedCert, attachment: { ...cert.attachment, dataUrl: undefined, storagePath } }
         }
 
-        const persisted = await upsertCertificate({ ...savedCert, id: 0 }, profileRowId!)
+        if (!profileRowId) throw new Error('Perfil não encontrado.')
+        const persisted = await upsertCertificate({ ...savedCert, id: 0 }, profileRowId)
 
         // Replace temp id with real id
         const next = {
@@ -340,10 +341,16 @@ export function useStore() {
         setApiError('')
         return true
       } catch (err) {
-        // Rollback optimistic insert
-        setState(state)
-        setProfiles(profiles)
-        setActiveRegistration(activeRegistration)
+        // Targeted rollback: remove only the temp cert from current state (safe from stale closures)
+        setState(prev => ({ ...prev, certificates: prev.certificates.filter(c => c.id !== tempId) }))
+        setProfiles(prev => {
+          const reg = optimisticScoped.registration
+          if (!prev[reg]) return prev
+          return {
+            ...prev,
+            [reg]: { ...prev[reg], certificates: prev[reg].certificates.filter(c => c.id !== tempId) },
+          }
+        })
         persist(activeRegistration, state, profiles)
         setApiStatus('error')
         const msg = err instanceof Error ? err.message : ''
@@ -411,10 +418,22 @@ export function useStore() {
         setApiError('')
         return true
       } catch (err) {
-        // Rollback optimistic update
-        setState(state)
-        setProfiles(profiles)
-        setActiveRegistration(activeRegistration)
+        // Targeted rollback: restore the original cert in current state (safe from stale closures)
+        setState(prev => ({
+          ...prev,
+          certificates: prev.certificates.map(c => c.id === id ? current! : c),
+        }))
+        setProfiles(prev => {
+          const reg = scoped.registration
+          if (!prev[reg]) return prev
+          return {
+            ...prev,
+            [reg]: {
+              ...prev[reg],
+              certificates: prev[reg].certificates.map(c => c.id === id ? current! : c),
+            },
+          }
+        })
         persist(activeRegistration, state, profiles)
         setApiStatus('error')
         const msg = err instanceof Error ? err.message : ''
@@ -432,6 +451,7 @@ export function useStore() {
 
   const deleteCertificate = useCallback(
     async (id: number) => {
+      const deletedCert = state.certificates.find(c => c.id === id)
       const next = { ...state, certificates: state.certificates.filter(c => c.id !== id) }
       const scoped = scopeStateToProfile(activeRegistration, next, profiles)
       setState(next)
@@ -446,10 +466,18 @@ export function useStore() {
           setApiStatus('online')
           setApiError('')
         } catch (err) {
-          // Rollback: restore certificate that failed to delete remotely
-          setState(state)
-          setProfiles(profiles)
-          setActiveRegistration(activeRegistration)
+          // Targeted rollback: re-insert the deleted cert into current state (safe from stale closures)
+          if (deletedCert) {
+            setState(prev => ({ ...prev, certificates: [...prev.certificates, deletedCert] }))
+            setProfiles(prev => {
+              const reg = scoped.registration
+              if (!prev[reg]) return prev
+              return {
+                ...prev,
+                [reg]: { ...prev[reg], certificates: [...prev[reg].certificates, deletedCert] },
+              }
+            })
+          }
           persist(activeRegistration, state, profiles)
           setApiStatus('error')
           setApiError(err instanceof Error ? err.message : 'Erro ao excluir certificado no Supabase.')
@@ -535,7 +563,7 @@ export function useStore() {
         try {
           setApiStatus('syncing')
           setApiError('')
-          await deleteProfileRemote(reg)
+          await deleteProfileRemote(reg, authUser.id)
           setApiStatus('online')
           setApiError('')
         } catch (err) {
@@ -626,7 +654,13 @@ export function useStore() {
   // ── Import / Export ───────────────────────────────────────────
 
   const exportAllProfiles = useCallback(
-    () => ({ version: 3, activeRegistration, profiles, draft: state }),
+    () => {
+      const safeProfiles = Object.fromEntries(
+        Object.entries(profiles).map(([k, p]) => [k, { ...p, student: { ...p.student, cpf: '' } }])
+      )
+      const safeDraft = { ...state, student: { ...state.student, cpf: '' } }
+      return { version: 3, activeRegistration, profiles: safeProfiles, draft: safeDraft }
+    },
     [activeRegistration, profiles, state],
   )
 
