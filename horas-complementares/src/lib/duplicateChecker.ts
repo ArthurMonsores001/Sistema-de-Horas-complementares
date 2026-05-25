@@ -2,7 +2,7 @@ import { Certificate } from './types'
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean
-  reason?: 'file_hash'
+  reason?: 'file_hash' | 'metadata'
   matchingCertificate?: Certificate
 }
 
@@ -28,17 +28,26 @@ export function checkDuplicate(
     return { isDuplicate: false }
   }
   const newHash = newCert.attachment?.fileHash
-  if (!newHash) {
-    return { isDuplicate: false }
-  }
-  for (const existing of existingCerts) {
-    if (existing.attachment?.fileHash === newHash) {
-      return {
-        isDuplicate: true,
-        reason: 'file_hash',
-        matchingCertificate: existing,
+
+  if (newHash) {
+    for (const existing of existingCerts) {
+      if (existing.attachment?.fileHash === newHash) {
+        return { isDuplicate: true, reason: 'file_hash', matchingCertificate: existing }
       }
     }
+    return { isDuplicate: false }
   }
+
+  // Fallback por metadados quando não há arquivo anexo
+  for (const existing of existingCerts) {
+    if (
+      existing.activityId === newCert.activityId &&
+      existing.date === newCert.date &&
+      existing.hours === newCert.hours
+    ) {
+      return { isDuplicate: true, reason: 'metadata', matchingCertificate: existing }
+    }
+  }
+
   return { isDuplicate: false }
 }

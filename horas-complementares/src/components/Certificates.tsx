@@ -241,6 +241,7 @@ export default function Certificates({ store }: CertificatesProps) {
   const saveEdit = (event: React.FormEvent) => {
     event.preventDefault()
     if (!editing || !editForm) return
+    if (editing.status !== 'draft') return
 
     const activityId = Number(editForm.activityId)
     const hours = Number(editForm.hours)
@@ -404,7 +405,8 @@ export default function Certificates({ store }: CertificatesProps) {
                   <button
                     type="button"
                     onClick={() => startEdit(cert)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-vinho-600 hover:border-vinho-200 hover:bg-vinho-50 flex items-center justify-center transition-colors flex-shrink-0"
+                    disabled={cert.status !== 'draft'}
+                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-vinho-600 hover:border-vinho-200 hover:bg-vinho-50 flex items-center justify-center transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
                     aria-label="Editar certificado"
                   >
                     <Pencil size={15} />

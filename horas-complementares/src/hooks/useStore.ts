@@ -107,9 +107,12 @@ function computeUsage(certs: Certificate[]) {
   return out
 }
 
-function duplicateMessage(cert: Certificate | undefined) {
+function duplicateMessage(cert: Certificate | undefined, reason?: 'file_hash' | 'metadata') {
+  const descriptionPart = cert?.description ? ` (${cert.description})` : ''
+  if (reason === 'metadata') {
+    return `Esta atividade já foi cadastrada anteriormente${descriptionPart}.`
+  }
   if (!cert) return 'Este arquivo já foi enviado anteriormente.'
-  const descriptionPart = cert.description ? ` (${cert.description})` : ''
   return `Este arquivo já foi enviado anteriormente${descriptionPart}.`
 }
 
@@ -264,7 +267,7 @@ export function useStore() {
     async (cert: Omit<Certificate, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
       const duplicateCheck = checkDuplicate(cert, state.certificates)
       if (duplicateCheck.isDuplicate) {
-        setApiError(duplicateMessage(duplicateCheck.matchingCertificate))
+        setApiError(duplicateMessage(duplicateCheck.matchingCertificate, duplicateCheck.reason))
         return false
       }
 
