@@ -129,6 +129,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const [showLimitDialog, setShowLimitDialog] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isDuplicateFile, setIsDuplicateFile] = useState(false)
+  const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const setField = (k: keyof FormState, v: string) =>
@@ -241,6 +242,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const saveCertificate = async () => {
     const actId = parseInt(form.activityId)
     if (!actId) return
+    setSaving(true)
     const saved = await store.addCertificate({
       activityId: actId,
       description: form.description.trim(),
@@ -260,6 +262,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
           }
         : undefined,
     })
+    setSaving(false)
     if (!saved) return
     setForm(EMPTY_FORM)
     setSuggestion(null)
@@ -275,6 +278,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (saving) return
 
     // Validar duplicata
     const certificatesList = store.state?.certificates ?? []
@@ -332,7 +336,11 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Upload do Arquivo</div>
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Selecionar arquivo de certificado. Clique ou arraste PDF, PNG ou JPG aqui."
               onClick={() => fileRef.current?.click()}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
               onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={e => {
@@ -561,10 +569,13 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               </button>
               <button
                 type="submit"
-                disabled={!form.activityId || !form.hours || isDuplicateFile}
-                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm shadow-vinho-200"
+                disabled={!form.activityId || !form.hours || isDuplicateFile || saving}
+                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm shadow-vinho-200 flex items-center justify-center gap-2"
               >
-                {isDuplicateFile ? 'Arquivo duplicado' : 'Salvar certificado'}
+                {saving
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Salvando...</>
+                  : isDuplicateFile ? 'Arquivo duplicado' : 'Salvar certificado'
+                }
               </button>
             </div>
           </form>
@@ -597,9 +608,13 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               </button>
               <button
                 onClick={saveCertificate}
-                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
+                disabled={saving}
+                className="flex-1 min-h-10 rounded-lg bg-vinho-600 hover:bg-vinho-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
               >
-                Salvar assim mesmo
+                {saving
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Salvando...</>
+                  : 'Salvar assim mesmo'
+                }
               </button>
             </div>
           </div>

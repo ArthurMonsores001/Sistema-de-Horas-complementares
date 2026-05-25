@@ -12,10 +12,16 @@ function RingProgress({ value, max }: { value: number; max: number }) {
   const circ = 2 * Math.PI * r
   const dash = pct * circ
   const complete = value >= max
+  const pctLabel = Math.round(pct * 100)
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-      <svg width="160" height="160" viewBox="0 0 160 160" style={{ transform: 'rotate(-90deg)' }}>
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: 160, height: 160 }}
+      role="img"
+      aria-label={`${value}h concluídas de ${max}h — ${pctLabel}%${complete ? ' — meta atingida' : ''}`}
+    >
+      <svg width="160" height="160" viewBox="0 0 160 160" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
         <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="13" />
         <circle
           cx="80" cy="80" r={r} fill="none"
@@ -26,7 +32,7 @@ function RingProgress({ value, max }: { value: number; max: number }) {
           style={{ transition: 'stroke-dasharray 0.9s cubic-bezier(0.25,1,0.5,1)' }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden="true">
         <div className="text-white font-extrabold text-3xl leading-none">{value}</div>
         <div className="text-white/50 text-xs font-medium mt-0.5">de {max}h</div>
         {complete && <div className="text-emerald-400 text-xs font-semibold mt-1">✓ Completo</div>}

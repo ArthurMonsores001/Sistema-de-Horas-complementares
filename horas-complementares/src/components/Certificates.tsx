@@ -184,6 +184,7 @@ export default function Certificates({ store }: CertificatesProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editSaving, setEditSaving] = useState(false)
   const usageById = store.getCertificateUsage()
 
   const submittableCerts = store.state.certificates.filter(
@@ -238,24 +239,28 @@ export default function Certificates({ store }: CertificatesProps) {
     })
   }
 
-  const saveEdit = (event: React.FormEvent) => {
+  const saveEdit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!editing || !editForm) return
-    if (editing.status !== 'draft') return
+    if (editing.status !== 'draft' && editing.status !== 'rejected') return
 
     const activityId = Number(editForm.activityId)
     const hours = Number(editForm.hours)
     if (!activityId || !hours || hours < 1) return
 
-    store.updateCertificate(editing.id, {
+    setEditSaving(true)
+    const ok = await store.updateCertificate(editing.id, {
       ...editing,
       activityId,
       description: editForm.description.trim(),
       hours,
       date: editForm.date,
       location: editForm.location.trim(),
+      status: 'draft',
+      supervisorComment: undefined,
     })
-    closeEdit()
+    setEditSaving(false)
+    if (ok) closeEdit()
   }
 
   const confirmDelete = async () => {
@@ -405,7 +410,8 @@ export default function Certificates({ store }: CertificatesProps) {
                   <button
                     type="button"
                     onClick={() => startEdit(cert)}
-                    disabled={cert.status !== 'draft'}
+                    disabled={cert.status !== 'draft' && cert.status !== 'rejected'}
+                    title={cert.status === 'pending' ? 'Aguardando avaliação — não é possível editar' : cert.status === 'approved' ? 'Certificado aprovado — não é possível editar' : undefined}
                     className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-vinho-600 hover:border-vinho-200 hover:bg-vinho-50 flex items-center justify-center transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
                     aria-label="Editar certificado"
                   >
@@ -674,7 +680,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     required
                     type="number"
                     min="1"
-                    max="9999"
+                    max="2000"
                     value={editForm.hours}
                     onChange={event => setEditField('hours', event.target.value)}
                     className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
@@ -701,19 +707,28 @@ export default function Certificates({ store }: CertificatesProps) {
                 </label>
               </div>
 
+              {store.apiError && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{store.apiError}</p>
+              )}
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
+                  disabled={editSaving}
+                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   <X size={15} /> Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors"
+                  disabled={editSaving}
+                  className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
-                  <Check size={15} /> Salvar alterações
+                  {editSaving
+                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Salvando...</>
+                    : <><Check size={15} /> Salvar alterações</>
+                  }
                 </button>
               </div>
             </form>

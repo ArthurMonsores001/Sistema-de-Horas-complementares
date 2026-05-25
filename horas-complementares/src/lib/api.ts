@@ -309,3 +309,19 @@ export async function reviewCertificate(
 
   if (error) throw new Error(error.message)
 }
+
+export async function supervisorEditCertificate(
+  certId: number,
+  patch: { activityId: number; hours: number },
+): Promise<void> {
+  const { error } = await supabase
+    .from('certificates')
+    .update({
+      activity_id: patch.activityId,
+      hours: patch.hours,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', certId)
+
+  if (error) throw new Error(error.message)
+}

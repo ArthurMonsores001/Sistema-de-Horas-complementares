@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { StoreType } from '@/hooks/useStore'
-import { fetchAllStudentsForSupervisor, reviewCertificate, getAttachmentUrl } from '@/lib/api'
+import { fetchAllStudentsForSupervisor, reviewCertificate, getAttachmentUrl, supervisorEditCertificate } from '@/lib/api'
 import { StudentProfile, Certificate, CertificateStatus } from '@/lib/types'
-import { ACTIVITIES, CATEGORIES } from '@/lib/data'
+import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import {
   ShieldCheck, LogOut, Search, Users, Clock, RefreshCw, ChevronRight,
   GraduationCap, ArrowLeft, CheckCircle2, XCircle, FileText, ExternalLink,
-  MessageSquare, Save, Eye, Pencil,
+  MessageSquare, Save, Eye, Pencil, Settings2,
 } from 'lucide-react'
 
 interface SupervisorAreaProps {
@@ -24,6 +24,14 @@ interface EvalState {
   saving: boolean
   done: boolean
   editing: boolean
+}
+
+interface CertDataEdit {
+  open: boolean
+  categoryId: string
+  activityId: string
+  hours: string
+  saving: boolean
 }
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -54,13 +62,16 @@ function StudentEvalView({
   profile,
   onBack,
   onProfileUpdate,
+  onCertDataUpdate,
 }: {
   profile: StudentProfile
   onBack: () => void
   onProfileUpdate: (reg: string, certId: number, status: 'approved' | 'rejected', comment: string) => void
+  onCertDataUpdate: (reg: string, certId: number, patch: { activityId: number; hours: number }) => void
 }) {
   const [evalMap, setEvalMap] = useState<Record<number, EvalState>>({})
   const [loadingUrl, setLoadingUrl] = useState<number | null>(null)
+  const [dataEditMap, setDataEditMap] = useState<Record<number, CertDataEdit>>({})
 
   const pending = useMemo(() => profile.certificates.filter(c => c.status === 'pending'), [profile])
   const evaluated = useMemo(
@@ -110,6 +121,39 @@ function StudentEvalView({
   const categoryName = (actId: number) => {
     const act = ACTIVITIES.find(a => a.id === actId)
     return act ? (CATEGORIES.find(c => c.id === act.categoryId)?.shortName ?? '') : ''
+  }
+
+  const getDataEdit = (id: number): CertDataEdit =>
+    dataEditMap[id] ?? { open: false, categoryId: '', activityId: '', hours: '', saving: false }
+
+  const setDataEdit = (id: number, patch: Partial<CertDataEdit>) =>
+    setDataEditMap(prev => ({ ...prev, [id]: { ...getDataEdit(id), ...patch } }))
+
+  const openDataEdit = (cert: Certificate) => {
+    const act = ACTIVITIES.find(a => a.id === cert.activityId)
+    setDataEdit(cert.id, {
+      open: true,
+      categoryId: act ? String(act.categoryId) : '',
+      activityId: String(cert.activityId),
+      hours: String(cert.hours),
+      saving: false,
+    })
+  }
+
+  const handleSaveDataEdit = async (cert: Certificate) => {
+    const de = getDataEdit(cert.id)
+    const activityId = Number(de.activityId)
+    const hours = Number(de.hours)
+    if (!activityId || !hours || hours < 1) return
+
+    setDataEdit(cert.id, { saving: true })
+    try {
+      await supervisorEditCertificate(cert.id, { activityId, hours })
+      setDataEdit(cert.id, { open: false, saving: false })
+      onCertDataUpdate(profile.registration, cert.id, { activityId, hours })
+    } catch {
+      setDataEdit(cert.id, { saving: false })
+    }
   }
 
   const renderCert = (cert: Certificate, editable: boolean) => {
@@ -257,6 +301,90 @@ function StudentEvalView({
             Avaliação salva
           </div>
         )}
+
+        {/* Supervisor data correction */}
+        {(() => {
+          const de = getDataEdit(cert.id)
+          if (!de.open) {
+            return (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => openDataEdit(cert)}
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-vinho-600 font-medium transition-colors"
+                >
+                  <Settings2 size={12} />
+                  Corrigir categoria / horas
+                </button>
+              </div>
+            )
+          }
+          return (
+            <div className="border-t border-dashed border-vinho-200 mt-3 pt-3 space-y-3">
+              <p className="text-xs font-semibold text-vinho-700">Corrigir classificação do certificado</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Categoria</label>
+                  <select
+                    value={de.categoryId}
+                    onChange={e => setDataEdit(cert.id, { categoryId: e.target.value, activityId: '' })}
+                    className="w-full text-xs rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:border-vinho-400 outline-none"
+                  >
+                    <option value="">Selecione...</option>
+                    {SELECTABLE_CATEGORIES.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Atividade</label>
+                  <select
+                    value={de.activityId}
+                    onChange={e => setDataEdit(cert.id, { activityId: e.target.value })}
+                    disabled={!de.categoryId}
+                    className="w-full text-xs rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:border-vinho-400 outline-none disabled:opacity-50"
+                  >
+                    <option value="">{de.categoryId ? 'Selecione...' : 'Selecione a categoria'}</option>
+                    {ACTIVITIES.filter(a => a.categoryId === Number(de.categoryId)).map(a => (
+                      <option key={a.id} value={a.id}>{a.name} (máx. {a.maxHours}h)</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Horas declaradas</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="2000"
+                  value={de.hours}
+                  onChange={e => setDataEdit(cert.id, { hours: e.target.value })}
+                  className="w-28 text-xs rounded-lg border border-gray-200 px-2 py-1.5 focus:border-vinho-400 outline-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveDataEdit(cert)}
+                  disabled={de.saving || !de.activityId || !de.hours || Number(de.hours) < 1}
+                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-vinho-600 hover:bg-vinho-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
+                >
+                  {de.saving
+                    ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                    : <Save size={12} />}
+                  Salvar correção
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDataEdit(cert.id, { open: false })}
+                  className="px-3 h-8 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     )
   }
@@ -387,6 +515,31 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
     })
   }, [])
 
+  const handleCertDataUpdate = useCallback((
+    reg: string,
+    certId: number,
+    patch: { activityId: number; hours: number },
+  ) => {
+    setProfiles(prev => prev.map(p => {
+      if (p.registration !== reg) return p
+      return {
+        ...p,
+        certificates: p.certificates.map(c =>
+          c.id === certId ? { ...c, ...patch } : c,
+        ),
+      }
+    }))
+    setSelectedProfile(prev => {
+      if (!prev || prev.registration !== reg) return prev
+      return {
+        ...prev,
+        certificates: prev.certificates.map(c =>
+          c.id === certId ? { ...c, ...patch } : c,
+        ),
+      }
+    })
+  }, [])
+
   const pendingCount = (p: StudentProfile) =>
     p.certificates.filter(c => c.status === 'pending').length
 
@@ -416,6 +569,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
         profile={selectedProfile}
         onBack={() => setSelectedProfile(null)}
         onProfileUpdate={handleProfileUpdate}
+        onCertDataUpdate={handleCertDataUpdate}
       />
     )
   }
