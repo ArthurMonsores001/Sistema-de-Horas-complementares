@@ -148,7 +148,7 @@ export function useStore() {
       if (user) {
         setAuthUser(user)
         setApiStatus('online')
-        const role = await getUserRole(user.id, user.email)
+        const role = await getUserRole(user.id)
         setUserRole(role)
         if (role === 'student') await pullRemoteProfiles(user)
       }
@@ -205,7 +205,7 @@ export function useStore() {
   const onAuthSuccess = useCallback(async (user: AuthUser): Promise<UserRole> => {
     setAuthUser(user)
     setApiStatus('online')
-    const role = await getUserRole(user.id, user.email)
+    const role = await getUserRole(user.id)
     setUserRole(role)
     if (role === 'student') await pullRemoteProfiles(user)
     return role

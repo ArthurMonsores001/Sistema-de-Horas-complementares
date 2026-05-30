@@ -132,7 +132,7 @@ export async function upsertCertificate(
   cert: Certificate,
   profileId: string,
 ): Promise<Certificate> {
-  const payload: Partial<DbCertificate> = {
+  const basePayload = {
     profile_id: profileId,
     activity_id: cert.activityId,
     description: cert.description,
@@ -147,17 +147,17 @@ export async function upsertCertificate(
     extracted_data: cert.extractedData
       ? (cert.extractedData as unknown as Record<string, unknown>)
       : null,
-    status: cert.status ?? 'draft',
-    supervisor_comment: cert.supervisorComment ?? null,
     submitted_at: cert.submittedAt ?? null,
     updated_at: new Date().toISOString(),
   }
 
   if (cert.id) {
+    // Exclude status and supervisor_comment from student updates — only supervisor may set these
     const { data, error } = await supabase
       .from('certificates')
-      .update(payload)
+      .update(basePayload)
       .eq('id', cert.id)
+      .eq('profile_id', profileId)
       .select()
       .single()
     if (error) throw new Error(error.message)
@@ -165,7 +165,7 @@ export async function upsertCertificate(
   } else {
     const { data, error } = await supabase
       .from('certificates')
-      .insert({ ...payload, created_at: new Date().toISOString() })
+      .insert({ ...basePayload, status: cert.status ?? 'draft', supervisor_comment: cert.supervisorComment ?? null, created_at: new Date().toISOString() })
       .select()
       .single()
     if (error) throw new Error(error.message)
@@ -234,12 +234,7 @@ export async function deleteAttachment(storagePath: string): Promise<void> {
 
 // ── Roles ─────────────────────────────────────────────────────────
 
-export async function getUserRole(userId: string, email?: string): Promise<UserRole> {
-  const supervisorEmail = process.env.NEXT_PUBLIC_SUPERVISOR_EMAIL
-  if (supervisorEmail && email && email.toLowerCase() === supervisorEmail.toLowerCase()) {
-    return 'supervisor'
-  }
-
+export async function getUserRole(userId: string): Promise<UserRole> {
   const { data } = await supabase
     .from('user_roles')
     .select('role')
