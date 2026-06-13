@@ -82,7 +82,7 @@ function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCa
         />
       </div>
       <div className="text-xs text-gray-400 mt-2">de {maxPossible}h possíveis</div>
-      <div className="text-xs text-gray-900 dark:text-white font-semibold mt-3 flex items-center gap-1">
+      <div className="text-xs text-gray-900 font-semibold mt-3 flex items-center gap-1">
         Ver detalhes <ChevronRight size={12} />
       </div>
     </button>
@@ -202,6 +202,8 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
 
   return (
     <div className="space-y-5">
+      <h1 className="sr-only">Painel de Horas Complementares</h1>
+
       {/* First-run banner */}
       {!name && (
         <div className="flex items-center gap-4 bg-vinho-600 text-white rounded-xl px-5 py-4 shadow-md shadow-vinho-200">
@@ -262,7 +264,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
                 Progresso das Horas
               </div>
               <div className="text-white/80 text-sm mb-5">
-                Engenharia{state.student.registration && ` · Matrícula ${state.student.registration}`}
+                {state.student.course || 'Curso não informado'}{state.student.registration && ` · Matrícula ${state.student.registration}`}
               </div>
 
               {/* Progress bar */}
@@ -332,7 +334,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-2 mb-5">
             <TrendingUp size={15} className="text-gray-900" />
-            <h3 className="text-sm font-semibold text-gray-700">Distribuição por Categoria</h3>
+            <h2 className="text-sm font-semibold text-gray-700">Distribuição por Categoria</h2>
           </div>
           {CATEGORIES.map((cat, i) => (
             <HorizBar
@@ -350,7 +352,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Clock size={15} className="text-gray-900" />
-            <h3 className="text-sm font-semibold text-gray-700">Atividades Registradas</h3>
+            <h2 className="text-sm font-semibold text-gray-700">Atividades Registradas</h2>
           </div>
           {actsWithHours.length === 0 ? (
             <div className="text-center py-8">
@@ -382,7 +384,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock size={15} className="text-gray-900" />
-              <h3 className="text-sm font-semibold text-gray-700">Adicionados Recentemente</h3>
+              <h2 className="text-sm font-semibold text-gray-700">Adicionados Recentemente</h2>
             </div>
             <button
               onClick={() => onNavigate('certificates')}
@@ -403,7 +405,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
       {state.certificates.length === 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-200 p-10 text-center">
           <div className="text-5xl mb-3">🎓</div>
-          <h3 className="text-gray-700 font-semibold text-base mb-1.5">Nenhum certificado ainda</h3>
+          <h2 className="text-gray-700 font-semibold text-base mb-1.5">Nenhum certificado ainda</h2>
           <p className="text-gray-400 text-sm mb-4">Adicione seus certificados para começar a acompanhar o progresso</p>
           <button
             onClick={() => onNavigate('add')}
