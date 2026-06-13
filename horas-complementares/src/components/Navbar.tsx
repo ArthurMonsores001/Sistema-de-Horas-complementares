@@ -1,24 +1,22 @@
 'use client'
 
 import { TabId } from '@/lib/types'
-import { LayoutDashboard, PlusCircle, FileText, Settings, GraduationCap, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, FileText, Settings, GraduationCap } from 'lucide-react'
 
-const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
-  { id: 'dashboard',    label: 'Dashboard',     Icon: LayoutDashboard },
-  { id: 'add',          label: 'Adicionar',      Icon: PlusCircle },
-  { id: 'certificates', label: 'Certificados',   Icon: FileText },
-  { id: 'settings',     label: 'Configurações',  Icon: Settings },
+const TABS: { id: TabId; label: string; shortLabel: string; Icon: React.ElementType }[] = [
+  { id: 'dashboard',    label: 'Dashboard',     shortLabel: 'Início',  Icon: LayoutDashboard },
+  { id: 'add',          label: 'Adicionar',     shortLabel: 'Adicionar', Icon: PlusCircle },
+  { id: 'certificates', label: 'Certificados',  shortLabel: 'Certif.', Icon: FileText },
+  { id: 'settings',     label: 'Configurações', shortLabel: 'Config.', Icon: Settings },
 ]
 
 interface NavbarProps {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
   displayName?: string
-  theme: 'light' | 'dark'
-  onToggleTheme: () => void
 }
 
-export default function Navbar({ activeTab, onTabChange, displayName, theme, onToggleTheme }: NavbarProps) {
+export default function Navbar({ activeTab, onTabChange, displayName }: NavbarProps) {
   const firstName = displayName?.trim().split(' ')[0]
 
   return (
@@ -49,10 +47,12 @@ export default function Navbar({ activeTab, onTabChange, displayName, theme, onT
 
           {/* Tabs */}
           <div className="flex gap-0.5 overflow-x-auto flex-1 scrollbar-none">
-            {TABS.map(({ id, label, Icon }) => (
+            {TABS.map(({ id, label, shortLabel, Icon }) => (
               <button
                 key={id}
                 onClick={() => onTabChange(id)}
+                aria-label={label}
+                aria-current={activeTab === id ? 'page' : undefined}
                 className={[
                   'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap flex-shrink-0',
                   activeTab === id
@@ -62,7 +62,7 @@ export default function Navbar({ activeTab, onTabChange, displayName, theme, onT
               >
                 <Icon size={15} />
                 <span className="hidden sm:inline">{label}</span>
-                <span className="sm:hidden">{label.slice(0, 3)}</span>
+                <span className="sm:hidden">{shortLabel}</span>
               </button>
             ))}
           </div>

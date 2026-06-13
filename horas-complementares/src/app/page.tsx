@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/hooks/useStore'
 import { TabId } from '@/lib/types'
 import Navbar from '@/components/Navbar'
@@ -17,19 +17,11 @@ import EvaluationNotification from '@/components/EvaluationNotification'
 export default function App() {
   const [tab, setTab] = useState<TabId>('dashboard')
   const [selectedCategoryId, setSelectedCategoryId] = useState(0)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const store = useStore()
 
   useEffect(() => {
-    const saved = localStorage.getItem('hc-theme')
-    const initial = saved === 'dark' || saved === 'light' ? saved : 'light'
-    setTheme(initial)
-  }, [])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-    try { localStorage.setItem('hc-theme', theme) } catch { /* ignore */ }
-  }, [theme])
+    setTab('dashboard')
+  }, [store.authUser])
 
   const openCategory = (categoryId: number) => {
     setSelectedCategoryId(categoryId)
@@ -60,8 +52,6 @@ export default function App() {
           activeTab={tab}
           onTabChange={setTab}
           displayName={store.state.student.name || store.authUser?.email}
-          theme={theme}
-          onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
         />
         <SyncStatus store={store} />
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
