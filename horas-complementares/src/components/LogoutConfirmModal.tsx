@@ -50,7 +50,7 @@ export default function LogoutConfirmModal({
                   Confirmação
                 </p>
                 <h2 className="mt-1 text-xl font-bold">
-                  Encerrar sessao?
+                  Encerrar sessão?
                 </h2>
               </div>
             </div>
@@ -67,8 +67,8 @@ export default function LogoutConfirmModal({
 
           <p className="relative mt-5 max-w-sm text-sm leading-6 text-white/78">
             {isSupervisor
-              ? 'Você vai sair da area de avaliação e precisara autenticar novamente para revisar certificados.'
-              : 'Você vai sair da conta atual e precisara entrar novamente para acessar seus certificados e sincronização.'}
+              ? 'Você vai sair da área de avaliação e precisará autenticar novamente para revisar certificados.'
+              : 'Você vai sair da conta atual e precisará entrar novamente para acessar seus certificados e sincronização.'}
           </p>
         </div>
 
