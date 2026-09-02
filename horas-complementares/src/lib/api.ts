@@ -34,10 +34,16 @@ export async function signOut(): Promise<void> {
 }
 
 export async function getSession(): Promise<AuthUser | null> {
-  const { data } = await supabase.auth.getUser()
-  const user = data.user
-  if (!user) return null
-  return { id: user.id, email: user.email ?? '' }
+  try {
+    const { data } = await supabase.auth.getUser()
+    const user = data.user
+    if (!user) return null
+    return { id: user.id, email: user.email ?? '' }
+  } catch {
+    // Chamada concorrente (ex: StrictMode) pode ter o lock de auth "roubado"
+    // por outra chamada mais recente; trate como sessão indisponível nesta tentativa.
+    return null
+  }
 }
 
 // ── Profiles ──────────────────────────────────────────────────────
