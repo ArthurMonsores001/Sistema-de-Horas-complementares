@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
@@ -132,6 +132,13 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const [isDuplicateFile, setIsDuplicateFile] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showModel, setShowModel] = useState(false)
+  const [expandPreview, setExpandPreview] = useState(false)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+
+  // Blob URLs are more reliable than data: URIs for <object> PDF rendering in Chrome
+  useEffect(() => {
+    return () => { if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl) }
+  }, [pdfPreviewUrl])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const setField = (k: keyof FormState, v: string) =>
@@ -170,6 +177,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setPreviewSrc(null)
     setAttachment(null)
     setAnalysis(null)
+    setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null })
 
     if (ext === 'pdf') {
       try {
@@ -177,6 +185,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
         const fileHash = await getFileHash(file)
         const text = await extractPDFText(file)
         setExtractedText(text.trim().slice(0, 1500))
+        setPdfPreviewUrl(URL.createObjectURL(file))
         const nextAttachment = { name: file.name, type: file.type || 'application/pdf', size: file.size, fileHash, dataUrl }
         setAttachment(nextAttachment)
         // Auto-fill
@@ -272,6 +281,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setPreviewSrc(null)
     setAttachment(null)
     setAnalysis(null)
+    setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null })
     setStatus(null)
     setShowLimitDialog(false)
     setIsDuplicateFile(false)
@@ -319,6 +329,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setPreviewSrc(null)
     setAttachment(null)
     setAnalysis(null)
+    setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null })
     setStatus(null)
     setShowLimitDialog(false)
     setIsDuplicateFile(false)
@@ -400,21 +411,48 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
           </div>
 
           {/* Preview */}
-          {(extractedText || previewSrc) && (
+          {(extractedText || previewSrc || pdfPreviewUrl) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="flex items-center gap-2 mb-3">
-                {extractedText ? <FileText size={14} className="text-vinho-500" /> : <Image size={14} className="text-vinho-500" />}
+                {attachment?.type === 'application/pdf' || extractedText
+                  ? <FileText size={14} className="text-vinho-500" />
+                  : <Image size={14} className="text-vinho-500" />}
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  {extractedText ? 'Texto Extraído' : 'Preview da Imagem'}
+                  Preview do certificado
                 </span>
               </div>
-              {extractedText && (
-                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 leading-relaxed max-h-40 overflow-y-auto font-mono break-words">
-                  {extractedText}
-                </div>
+              {pdfPreviewUrl && (
+                <object
+                  data={pdfPreviewUrl}
+                  type="application/pdf"
+                  className="w-full h-64 rounded-lg border border-gray-200 mb-3"
+                >
+                  <p className="text-xs text-gray-400 p-3">
+                    Não foi possível pré-visualizar o PDF.{' '}
+                    <a href={pdfPreviewUrl} target="_blank" rel="noreferrer" className="text-vinho-600 underline">
+                      Abrir em nova aba
+                    </a>
+                  </p>
+                </object>
               )}
               {previewSrc && (
-                <img src={previewSrc} alt="certificado" className="max-w-full max-h-48 rounded-lg object-contain" />
+                <button
+                  type="button"
+                  onClick={() => setExpandPreview(true)}
+                  className="block mb-3"
+                >
+                  <img src={previewSrc} alt="certificado" className="max-w-full max-h-48 rounded-lg object-contain hover:opacity-90 transition-opacity" />
+                </button>
+              )}
+              {extractedText && (
+                <details className="group">
+                  <summary className="text-xs text-gray-400 cursor-pointer select-none hover:text-gray-600">
+                    Ver texto extraído
+                  </summary>
+                  <div className="bg-gray-50 rounded-lg p-3 mt-2 text-xs text-gray-500 leading-relaxed max-h-40 overflow-y-auto font-mono break-words">
+                    {extractedText}
+                  </div>
+                </details>
               )}
               {suggestion && (
                 <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-vinho-50 rounded-lg">
@@ -632,6 +670,23 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {expandPreview && previewSrc && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-slate-950/70"
+          onClick={() => setExpandPreview(false)}
+        >
+          <img src={previewSrc} alt="certificado ampliado" className="max-w-full max-h-[85vh] rounded-lg" />
+          <button
+            type="button"
+            onClick={() => setExpandPreview(false)}
+            className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20"
+            aria-label="Fechar"
+          >
+            <X size={18} />
+          </button>
         </div>
       )}
     </div>
