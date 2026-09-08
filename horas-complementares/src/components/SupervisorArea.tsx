@@ -470,7 +470,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<FilterTab>('pending')
+  const [filter, setFilter] = useState<FilterTab>('all')
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
@@ -633,18 +633,18 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           </div>
           <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1">
             <button
-              onClick={() => setFilter('pending')}
-              className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
-            >
-              Com pendências
-            </button>
-            <button
               onClick={() => setFilter('all')}
               className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 filter === 'all' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
             >
               Todos
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
+            >
+              Com pendências
             </button>
           </div>
           <button
