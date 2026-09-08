@@ -6,7 +6,8 @@ import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
 import { analyzeCertificateText } from '@/lib/certificateAnalyzer'
 import { checkDuplicate, getFileHash } from '@/lib/duplicateChecker'
-import { Upload, Sparkles, CheckCircle, AlertTriangle, X, FileText, Image } from 'lucide-react'
+import { Upload, Sparkles, CheckCircle, AlertTriangle, X, FileText, Image, Table2 } from 'lucide-react'
+import OfficialModelModal from '@/components/OfficialModelModal'
 
 const CAT_STYLES = [
   { fill: '#3b82f6', badge: 'bg-blue-50 text-blue-700' },
@@ -130,6 +131,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
   const [isDragging, setIsDragging] = useState(false)
   const [isDuplicateFile, setIsDuplicateFile] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showModel, setShowModel] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const setField = (k: keyof FormState, v: string) =>
@@ -324,10 +326,22 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Adicionar Certificado</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Faça upload do PDF ou preencha os campos manualmente</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Adicionar Certificado</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Faça upload do PDF ou preencha os campos manualmente</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowModel(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-vinho-700 border border-vinho-200 rounded-lg px-3 py-1.5 hover:bg-vinho-50 transition-colors flex-shrink-0"
+        >
+          <Table2 size={13} />
+          Ver modelo oficial
+        </button>
       </div>
+
+      <OfficialModelModal open={showModel} onClose={() => setShowModel(false)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Left column: upload */}
