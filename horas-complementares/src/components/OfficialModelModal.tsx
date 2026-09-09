@@ -20,7 +20,7 @@ export default function OfficialModelModal({ open, onClose }: OfficialModelModal
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">

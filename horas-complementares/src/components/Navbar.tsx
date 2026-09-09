@@ -20,7 +20,7 @@ export default function Navbar({ activeTab, onTabChange, displayName }: NavbarPr
   const firstName = displayName?.trim().split(' ')[0]
 
   return (
-    <nav className="sticky top-0 z-50 shadow-xl" style={{
+    <nav className="sticky top-0 z-50" style={{
       background: 'linear-gradient(135deg, #26040a 0%, #790E18 50%, #26040a 100%)',
     }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
