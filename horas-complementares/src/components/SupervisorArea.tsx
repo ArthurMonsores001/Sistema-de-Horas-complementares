@@ -9,7 +9,7 @@ import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import {
   ShieldCheck, LogOut, Search, Users, Clock, RefreshCw, ChevronRight,
   GraduationCap, ArrowLeft, CheckCircle2, XCircle, FileText, ExternalLink,
-  MessageSquare, Save, Eye, Pencil, Settings2,
+  MessageSquare, Save, Eye, Pencil, Settings2, AlertTriangle,
 } from 'lucide-react'
 
 interface SupervisorAreaProps {
@@ -160,6 +160,8 @@ function StudentEvalView({
     const ev = getEval(cert.id)
     const isDone = ev.done
     const effectiveStatus = isDone ? ev.decision as CertificateStatus : cert.status
+    const act = ACTIVITIES.find(a => a.id === cert.activityId)
+    const exceeded = act ? cert.hours > act.maxHours : false
 
     return (
       <div key={cert.id} className={[
@@ -181,6 +183,14 @@ function StudentEvalView({
           {cert.date && <span className="text-xs text-gray-500">Data: <span className="font-medium">{cert.date}</span></span>}
           {cert.location && <span className="text-xs text-gray-500">Local: <span className="font-medium">{cert.location}</span></span>}
         </div>
+        {exceeded && act && (
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-500" />
+            <p className="text-xs">
+              Aluno declarou {cert.hours}h, limite da atividade é {act.maxHours}h. O excedente ({cert.hours - act.maxHours}h) não conta no total mesmo se aprovado.
+            </p>
+          </div>
+        )}
         {cert.description && (
           <p className="text-xs text-gray-500 mb-3 bg-gray-50 rounded-lg px-3 py-2">{cert.description}</p>
         )}
