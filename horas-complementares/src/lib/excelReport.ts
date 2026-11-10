@@ -42,7 +42,7 @@ export function exportStudentExcelReport(state: AppState) {
   const totalSubmitted = certificates.reduce((sum, cert) => sum + cert.hours, 0)
   const totalEffective = certificates.reduce((sum, cert) => sum + (usageById[cert.id]?.effectiveHours ?? cert.hours), 0)
   const totalExcess = Math.max(0, totalSubmitted - totalEffective)
-  const required = student.totalRequired || 120
+  const required = student.totalRequired || 180
   const progress = required > 0 ? Math.min(100, Math.round((totalEffective / required) * 100)) : 0
 
   const summarySheetName = student.registration ? `Resumo — ${student.registration.toUpperCase()}` : 'Resumo'

@@ -6,6 +6,8 @@ import { signIn, signUp } from '@/lib/api'
 import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
 import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft } from 'lucide-react'
 
+const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/
+
 interface AuthGateProps {
   store: StoreType
   children: React.ReactNode
@@ -61,6 +63,11 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         return
       }
 
+      if (mode === 'register' && !PASSWORD_RULE.test(password)) {
+        setMessage('A senha precisa ter no mínimo 10 caracteres, com letra, número e caractere especial.')
+        return
+      }
+
       const user = mode === 'login' ? await signIn(email, password) : await signUp(email, password)
       if (mode === 'register') signUpSucceeded = true
       const role = await store.onAuthSuccess(user)
@@ -78,7 +85,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
           cpf: '',
           course: course.trim(),
           engineeringType: course === 'Engenharia' ? engineeringType : undefined,
-          totalRequired: 120,
+          totalRequired: 180,
         }, user)
 
         if (!saved) {
@@ -243,7 +250,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                 <span className="block text-sm font-medium text-gray-700 mb-1.5">Senha</span>
                 <input
                   required type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  minLength={6} placeholder="mínimo 6 caracteres"
+                  placeholder={mode === 'register' ? 'mín. 10, com letra, número e especial' : 'Sua senha'}
                   className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
                 />
               </label>

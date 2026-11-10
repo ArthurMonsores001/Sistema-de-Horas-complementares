@@ -176,7 +176,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
   const { state, getTotalEffective, getCategoryEffective, getCategoryMax, getActivityEffective, getActivitySubmitted } = store
 
   const totalEff = getTotalEffective()
-  const required = state.student.totalRequired || 120
+  const required = state.student.totalRequired || 180
   const pct = Math.min(100, Math.round((totalEff / required) * 100))
   const remaining = Math.max(0, required - totalEff)
   const name = state.student.name || null

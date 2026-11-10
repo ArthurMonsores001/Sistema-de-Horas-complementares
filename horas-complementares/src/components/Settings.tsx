@@ -164,9 +164,13 @@ export default function Settings({ store }: SettingsProps) {
               type="number"
               min="1"
               value={student.totalRequired}
-              onChange={e => updateField('totalRequired', e.target.value)}
-              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100"
+              readOnly
+              aria-describedby="total-required-hint"
+              className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
             />
+            <span id="total-required-hint" className="block text-xs text-gray-500 mt-1">
+              Definido pela coordenação. Não pode ser alterado pelo aluno.
+            </span>
           </label>
         </div>
 
