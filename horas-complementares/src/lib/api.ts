@@ -9,6 +9,8 @@ import { Certificate, CertificateStatus, Student, StudentProfile, UserRole } fro
 const PROFILE_SELECT = 'id,user_id,registration,name,cpf,course,engineering_type,total_required,updated_at'
 // Supervisor não precisa ver CPF dos alunos — menor superfície de exposição
 const SUPERVISOR_PROFILE_SELECT = 'id,user_id,registration,name,course,engineering_type,total_required,updated_at'
+// Requisicao travada vira erro em vez de deixar a tela vazia para sempre
+const LOAD_TIMEOUT_MS = 15000
 
 // ── Auth ──────────────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ export async function fetchAllProfiles(userId: string): Promise<StudentProfile[]
     .select(`${PROFILE_SELECT}, certificates(*)`)
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
+    .abortSignal(AbortSignal.timeout(LOAD_TIMEOUT_MS))
 
   if (error) throw new Error(error.message)
 
@@ -284,11 +287,15 @@ export async function deleteAttachment(storagePath: string): Promise<void> {
 // ── Roles ─────────────────────────────────────────────────────────
 
 export async function getUserRole(userId: string): Promise<UserRole> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', userId)
+    .abortSignal(AbortSignal.timeout(LOAD_TIMEOUT_MS))
     .maybeSingle()
+
+  // Falha de rede nao pode virar "aluno sem dados": quem chama decide o que mostrar
+  if (error) throw new Error(error.message)
 
   return ((data as DbUserRole | null)?.role as UserRole) ?? 'student'
 }
