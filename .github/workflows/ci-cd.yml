@@ -81,6 +81,8 @@ jobs:
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Vercel build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://${{ vars.HML_DOMAIN }}
         run: vercel build --token="$VERCEL_TOKEN"
 
       - name: Vercel deploy
