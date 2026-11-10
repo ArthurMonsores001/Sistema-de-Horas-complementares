@@ -137,14 +137,14 @@ function AttachmentPreview({
   if (isPdf) {
     return (
       <object
-        data={`${objectUrl}#toolbar=1&navpanes=0`}
+        data={`${objectUrl}#toolbar=0&navpanes=0&view=FitH`}
         type="application/pdf"
-        className="w-full h-full min-h-[520px] rounded-lg border border-slate-200 bg-white"
+        className="w-full h-full min-h-[520px] rounded-lg bg-white"
       >
         <embed
-          src={`${objectUrl}#toolbar=1&navpanes=0`}
+          src={`${objectUrl}#toolbar=0&navpanes=0&view=FitH`}
           type="application/pdf"
-          className="w-full h-full min-h-[520px] rounded-lg border border-slate-200 bg-white"
+          className="w-full h-full min-h-[520px] rounded-lg bg-white"
         />
       </object>
     )
@@ -350,9 +350,9 @@ export default function Certificates({ store }: CertificatesProps) {
             return (
               <article
                 key={cert.id}
-                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${style.border} p-4`}
+                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${style.border} p-4 transition-shadow duration-200 hover:shadow-md`}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex flex-wrap sm:flex-nowrap items-start gap-3">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${style.badge}`}>
                     {category.icon}
                   </div>
@@ -377,6 +377,9 @@ export default function Certificates({ store }: CertificatesProps) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-gray-400">
+                      {cert.id > 0 && (
+                        <span className="font-medium text-gray-500">ID #{cert.id}</span>
+                      )}
                       <span className="inline-flex items-center gap-1.5">
                         <Clock size={13} /> {cert.hours}h enviadas
                       </span>
@@ -398,10 +401,11 @@ export default function Certificates({ store }: CertificatesProps) {
                     )}
                   </div>
 
+                  <div className="flex w-full sm:w-auto justify-end gap-1 sm:gap-3 border-t border-gray-100 pt-2 sm:border-0 sm:pt-0 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setViewing(cert)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-colors flex-shrink-0"
+                    className="w-9 h-9 rounded-full text-gray-400 flex items-center justify-center transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-vinho-200 hover:text-vinho-700 hover:bg-vinho-50"
                     aria-label="Visualizar certificado"
                   >
                     <Eye size={15} />
@@ -411,8 +415,8 @@ export default function Certificates({ store }: CertificatesProps) {
                     type="button"
                     onClick={() => startEdit(cert)}
                     disabled={cert.status !== 'draft' && cert.status !== 'rejected'}
-                    title={cert.status === 'pending' ? 'Aguardando avaliação — não é possível editar' : cert.status === 'approved' ? 'Certificado aprovado — não é possível editar' : undefined}
-                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-vinho-600 hover:border-vinho-200 hover:bg-vinho-50 flex items-center justify-center transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
+                    title={cert.status === 'pending' ? 'Aguardando avaliação: não é possível editar' : cert.status === 'approved' ? 'Certificado aprovado: não é possível editar' : undefined}
+                    className="w-9 h-9 rounded-full text-gray-400 flex items-center justify-center transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-vinho-200 hover:text-vinho-700 hover:bg-vinho-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
                     aria-label="Editar certificado"
                   >
                     <Pencil size={15} />
@@ -421,11 +425,14 @@ export default function Certificates({ store }: CertificatesProps) {
                   <button
                     type="button"
                     onClick={() => setPendingDelete(cert)}
-                    className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0"
+                    disabled={cert.status === 'approved'}
+                    title={cert.status === 'approved' ? 'Certificado aprovado: não é possível excluir' : undefined}
+                    className="w-9 h-9 rounded-full text-gray-400 flex items-center justify-center transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-vinho-200 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
                     aria-label="Excluir certificado"
                   >
                     <Trash2 size={15} />
                   </button>
+                  </div>
                 </div>
               </article>
             )
@@ -434,8 +441,8 @@ export default function Certificates({ store }: CertificatesProps) {
       )}
 
       {showSubmitModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
+        <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
+          <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Enviar para avaliação</h2>
@@ -526,7 +533,7 @@ export default function Certificates({ store }: CertificatesProps) {
         const usage = usageById[pendingDelete.id] ?? { effectiveHours: pendingDelete.hours, excessHours: 0 }
 
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">
+          <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
             <div className="w-full max-w-md overflow-hidden rounded-2xl border border-red-100 bg-white shadow-2xl">
               <div className="border-b border-red-100 bg-gradient-to-r from-red-50 via-white to-red-100 px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -606,8 +613,8 @@ export default function Certificates({ store }: CertificatesProps) {
       })()}
 
       {editing && editForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4">
-          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
+        <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
+          <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Editar certificado</h2>
@@ -742,8 +749,17 @@ export default function Certificates({ store }: CertificatesProps) {
         const hasAttachment = Boolean(viewing.attachment?.dataUrl || viewing.attachment?.storagePath)
 
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-3 py-4 sm:px-4 sm:py-6">
-            <div className="w-full max-w-4xl max-h-[94vh] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
+          <div
+            className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-3 py-4 sm:px-4 sm:py-6"
+            onClick={() => setViewing(null)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Visualizar certificado"
+              onClick={event => event.stopPropagation()}
+              className="view-enter w-full max-w-4xl max-h-[94vh] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col"
+            >
               <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100 flex-shrink-0">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-gray-900 truncate">Visualizar certificado</h2>
@@ -754,7 +770,7 @@ export default function Certificates({ store }: CertificatesProps) {
                 <button
                   type="button"
                   onClick={() => setViewing(null)}
-                  className="w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center flex-shrink-0"
+                  className="w-9 h-9 rounded-full text-gray-400 hover:text-vinho-700 hover:bg-vinho-50 flex items-center justify-center flex-shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-vinho-200"
                   aria-label="Fechar visualização"
                 >
                   <X size={16} />
@@ -762,7 +778,7 @@ export default function Certificates({ store }: CertificatesProps) {
               </div>
 
               <div className="flex flex-col md:grid md:grid-cols-[1fr_260px] min-h-0 overflow-y-auto md:overflow-hidden flex-1">
-                <div className="bg-slate-100 min-h-[300px] md:h-full md:overflow-hidden p-4 flex-shrink-0 md:flex-shrink">
+                <div className="bg-gray-50 min-h-[300px] md:h-full md:overflow-hidden p-4 flex-shrink-0 md:flex-shrink">
                   {hasAttachment && viewing.attachment && (
                     <AttachmentPreview
                       attachment={viewing.attachment}

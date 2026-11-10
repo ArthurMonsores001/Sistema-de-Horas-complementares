@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AppState, Certificate, Student, StudentProfile, UserRole } from '@/lib/types'
 import { ACTIVITIES } from '@/lib/data'
-import { supabase } from '@/lib/supabase'
+import { supabase, openedRecoveryLink, openedExpiredLink } from '@/lib/supabase'
 import { checkDuplicate } from '@/lib/duplicateChecker'
 import {
   AuthUser,
@@ -126,9 +126,14 @@ export function useStore() {
   const [apiStatus, setApiStatus] = useState<'local' | 'online' | 'syncing' | 'error'>('local')
   const [apiError, setApiError] = useState('')
   const [hydrated, setHydrated] = useState(false)
+  const [recovering, setRecovering] = useState(false)
+  const [linkExpired, setLinkExpired] = useState(false)
 
   // ── Hydration: local storage + Supabase session ───────────────
   useEffect(() => {
+    if (openedRecoveryLink) setRecovering(true)
+    if (openedExpiredLink) setLinkExpired(true)
+
     const init = async () => {
       // Load local cache first (instant UI) — reject if expired
       try {
@@ -148,6 +153,14 @@ export function useStore() {
 
       // Check Supabase session
       const user = await getSession()
+
+      // Tokens do link de e-mail ja foram consumidos: tira o hash da barra de enderecos
+      try {
+        if (/access_token|refresh_token|error_code/.test(window.location.hash)) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        }
+      } catch { /* ignore */ }
+
       if (user) {
         setAuthUser(user)
         setApiStatus('online')
@@ -163,13 +176,29 @@ export function useStore() {
     init()
 
     // Listen for auth state changes (e.g. token refresh, sign out from another tab)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true)
       if (!session) {
         setAuthUser(null)
         setApiStatus('local')
       }
     })
-    return () => subscription.unsubscribe()
+
+    // Ao voltar para a aba, confirma no servidor que o usuario ainda existe
+    const recheck = async () => {
+      if (document.visibilityState !== 'visible') return
+      const { data } = await supabase.auth.getSession()
+      if (data.session && !(await getSession())) {
+        const { data: after } = await supabase.auth.getSession()
+        if (!after.session) window.location.reload()
+      }
+    }
+    document.addEventListener('visibilitychange', recheck)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', recheck)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -214,7 +243,18 @@ export function useStore() {
     return role
   }, [pullRemoteProfiles])
 
+  const finishRecovery = useCallback(() => {
+    setRecovering(false)
+    try { window.history.replaceState(null, '', window.location.pathname) } catch { /* ignore */ }
+  }, [])
+
+  const dismissExpiredLink = useCallback(() => {
+    setLinkExpired(false)
+    try { window.history.replaceState(null, '', window.location.pathname) } catch { /* ignore */ }
+  }, [])
+
   const logout = useCallback(async () => {
+    setRecovering(false)
     await signOut()
     setAuthUser(null)
     setUserRole('student')
@@ -726,6 +766,8 @@ export function useStore() {
     apiStatus,
     apiError,
     hydrated,
+    recovering,
+    linkExpired,
 
     // Computed
     getCertificateUsage,
@@ -749,6 +791,8 @@ export function useStore() {
     // Auth
     onAuthSuccess,
     logout,
+    finishRecovery,
+    dismissExpiredLink,
 
     // Backend
     pullFromBackend,

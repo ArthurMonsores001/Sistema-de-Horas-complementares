@@ -13,6 +13,7 @@ import CategoryDetails from '@/components/CategoryDetails'
 import SyncStatus from '@/components/SyncStatus'
 import SupervisorArea from '@/components/SupervisorArea'
 import EvaluationNotification from '@/components/EvaluationNotification'
+import Footer from '@/components/Footer'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('dashboard')
@@ -41,7 +42,7 @@ export default function App() {
 
   return (
     <AuthGate store={store} supervisorArea={<SupervisorArea store={store} />}>
-      <div className="min-h-screen bg-[#f0f2f8]">
+      <div className="min-h-screen flex flex-col bg-[#f0f2f8]">
         {store.authUser && store.userRole === 'student' && (
           <EvaluationNotification
             certificates={store.state.certificates}
@@ -54,7 +55,7 @@ export default function App() {
           displayName={store.state.student.name || store.authUser?.email}
         />
         <SyncStatus store={store} />
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6">
           <div className="view-enter">
             {tab === 'dashboard'    && <Dashboard     store={store} onNavigate={setTab} onCategorySelect={openCategory} />}
             {tab === 'add'          && <AddCertificate store={store} onSuccess={() => setTab('certificates')} />}
@@ -63,6 +64,7 @@ export default function App() {
             {tab === 'category'     && <CategoryDetails categoryId={selectedCategoryId} store={store} onNavigate={setTab} />}
           </div>
         </main>
+        <Footer />
       </div>
     </AuthGate>
   )

@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { StoreType } from '@/hooks/useStore'
-import { signIn, signUp } from '@/lib/api'
+import { signIn, signUp, requestPasswordReset, updatePassword } from '@/lib/api'
 import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
-import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft } from 'lucide-react'
+import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft, Mail, KeyRound } from 'lucide-react'
+import { isStrongPassword, missingPasswordRules } from '@/lib/passwordRules'
+import PasswordChecklist from './PasswordChecklist'
+import PasswordInput from './PasswordInput'
+
 
 interface AuthGateProps {
   store: StoreType
@@ -13,7 +17,10 @@ interface AuthGateProps {
 }
 
 export default function AuthGate({ store, children, supervisorArea }: AuthGateProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
+  const [info, setInfo] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [area, setArea] = useState<'student' | 'supervisor'>('student')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,6 +33,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
 
   useEffect(() => {
     if (!store.authUser) {
+      setInfo('')
       setEmail('')
       setPassword('')
       setName('')
@@ -37,18 +45,86 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
     }
   }, [store.authUser])
 
+  useEffect(() => {
+    if (store.linkExpired) {
+      setMessage('Link expirado ou inválido. Peça um novo em "Esqueci minha senha".')
+      store.dismissExpiredLink()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.linkExpired])
+
   const switchArea = (next: 'student' | 'supervisor') => {
     setArea(next)
     setMode('login')
     setMessage('')
+    setInfo('')
     setEmail('')
     setPassword('')
+  }
+
+  const goTo = (next: 'login' | 'register' | 'forgot') => {
+    if (mode === 'register' || next === 'register') {
+      setEmail('')
+      setName('')
+      setRegistration('')
+      setCourse('')
+      setEngineeringType('')
+    }
+    setPassword('')
+    setMode(next)
+    setMessage('')
+    setInfo('')
+  }
+
+  const saveNewPassword = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setMessage('')
+    if (!isStrongPassword(newPassword)) {
+      setMessage(`A senha ainda não cumpre os requisitos. Falta: ${missingPasswordRules(newPassword).join(', ')}.`)
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage('As senhas não conferem.')
+      return
+    }
+    setLoading(true)
+    try {
+      await updatePassword(newPassword)
+      setNewPassword('')
+      setConfirmPassword('')
+      store.finishRecovery()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível alterar a senha.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const cancelRecovery = async () => {
+    setNewPassword('')
+    setConfirmPassword('')
+    setMessage('')
+    await store.logout()
+    store.finishRecovery()
   }
 
   const authenticate = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoading(true)
     setMessage('')
+    setInfo('')
+
+    if (mode === 'forgot') {
+      try {
+        await requestPasswordReset(email.trim())
+        setInfo('Se o e-mail estiver cadastrado, você receberá o link para redefinir a senha. Confira também o spam.')
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Não foi possível enviar o e-mail.')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
 
     let signUpSucceeded = false
     try {
@@ -58,6 +134,11 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
       }
       if (mode === 'register' && course === 'Engenharia' && !engineeringType) {
         setMessage('Selecione o tipo de engenharia.')
+        return
+      }
+
+      if (mode === 'register' && !isStrongPassword(password)) {
+        setMessage(`A senha ainda não cumpre os requisitos. Falta: ${missingPasswordRules(password).join(', ')}.`)
         return
       }
 
@@ -78,7 +159,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
           cpf: '',
           course: course.trim(),
           engineeringType: course === 'Engenharia' ? engineeringType : undefined,
-          totalRequired: 120,
+          totalRequired: 180,
         }, user)
 
         if (!saved) {
@@ -99,6 +180,56 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-vinho-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-slate-400 text-sm font-medium">Validando sessão...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (store.authUser && store.recovering) {
+    return (
+      <div className="min-h-screen bg-[#f0f2f8] flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl shadow-vinho-900/10 border border-gray-100 overflow-hidden">
+            <div className="px-6 py-7 text-white" style={{ background: 'linear-gradient(135deg, #26040a 0%, #790E18 55%, #5e0b13 100%)' }}>
+              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-4">
+                <KeyRound size={22} />
+              </div>
+              <h1 className="text-xl font-bold">Criar nova senha</h1>
+              <p className="text-sm mt-1 opacity-80">Escolha uma nova senha para acessar sua conta.</p>
+            </div>
+            <form onSubmit={saveNewPassword} className="px-6 pt-5 pb-6 space-y-4">
+              <label className="block">
+                <span className="block text-sm font-medium text-gray-700 mb-1.5">Nova senha</span>
+                <PasswordInput
+                  required value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Crie uma senha forte"
+                  className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
+                />
+                <PasswordChecklist password={newPassword} />
+              </label>
+              <label className="block">
+                <span className="block text-sm font-medium text-gray-700 mb-1.5">Confirmar nova senha</span>
+                <PasswordInput
+                  required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                  className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
+                />
+              </label>
+              {message && (
+                <div className="rounded-lg bg-amber-50 border border-amber-100 text-amber-700 px-4 py-3 text-sm font-medium">{message}</div>
+              )}
+              <button
+                type="submit" disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-60 bg-vinho-600 hover:bg-vinho-700"
+              >
+                {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <KeyRound size={16} />}
+                Salvar nova senha
+              </button>
+              <button type="button" onClick={cancelRecovery} className="w-full text-sm text-gray-500 hover:text-gray-700 font-medium">
+                Cancelar
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     )
@@ -138,10 +269,12 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
               {isSupervisor ? <ShieldCheck size={22} /> : <LockKeyhole size={22} />}
             </div>
             <h1 className="text-xl font-bold">
-              {isSupervisor ? 'Área do Supervisor' : mode === 'login' ? 'Seja Bem-Vindo Aluno!' : 'Criar conta'}
+              {mode === 'forgot' ? 'Redefinir senha' : isSupervisor ? 'Área do Supervisor' : mode === 'login' ? 'Seja Bem-Vindo Aluno!' : 'Criar conta'}
             </h1>
             <p className="text-sm mt-1 opacity-80">
-              {isSupervisor
+              {mode === 'forgot'
+                ? 'Informe seu e-mail para receber o link de redefinição.'
+                : isSupervisor
                 ? 'Acesso restrito para avaliação de certificados.'
                 : mode === 'login'
                   ? 'Registre seus certificados e confira suas horas complementares.'
@@ -153,11 +286,11 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
           <div className="px-6 pt-5 pb-6">
 
             {/* Entrar / Criar conta tabs — somente área do aluno */}
-            {!isSupervisor && (
+            {!isSupervisor && mode !== 'forgot' && (
               <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-5">
                 <button
                   type="button"
-                  onClick={() => { setMode('login'); setMessage('') }}
+                  onClick={() => goTo('login')}
                   className={['flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-semibold transition-colors',
                     mode === 'login' ? 'bg-white text-vinho-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'].join(' ')}
                 >
@@ -166,7 +299,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMode('register'); setMessage('') }}
+                  onClick={() => goTo('register')}
                   className={['flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-semibold transition-colors',
                     mode === 'register' ? 'bg-white text-vinho-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'].join(' ')}
                 >
@@ -239,18 +372,34 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                 />
               </label>
 
-              <label className="block">
-                <span className="block text-sm font-medium text-gray-700 mb-1.5">Senha</span>
-                <input
-                  required type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  minLength={6} placeholder="mínimo 6 caracteres"
-                  className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
-                />
-              </label>
+              {mode !== 'forgot' && (
+                <label className="block">
+                  <span className="block text-sm font-medium text-gray-700 mb-1.5">Senha</span>
+                  <PasswordInput
+                    key={mode} required value={password} onChange={e => setPassword(e.target.value)}
+                    placeholder={mode === 'register' ? 'Crie uma senha forte' : 'Sua senha'}
+                    className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
+                  />
+                  {mode === 'register' && <PasswordChecklist password={password} />}
+                  {mode === 'login' && (
+                    <button
+                      type="button" onClick={() => goTo('forgot')}
+                      className={['mt-2 text-xs font-semibold hover:underline', isSupervisor ? 'text-green-700' : 'text-vinho-600'].join(' ')}
+                    >
+                      Esqueci minha senha
+                    </button>
+                  )}
+                </label>
+              )}
 
               {message && (
                 <div className="rounded-lg bg-amber-50 border border-amber-100 text-amber-700 px-4 py-3 text-sm font-medium">
                   {message}
+                </div>
+              )}
+              {info && (
+                <div className="rounded-lg bg-green-50 border border-green-100 text-green-700 px-4 py-3 text-sm font-medium">
+                  {info}
                 </div>
               )}
 
@@ -261,9 +410,14 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
               >
                 {loading
                   ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : isSupervisor ? <ShieldCheck size={16} /> : mode === 'login' ? <LogIn size={16} /> : <UserPlus size={16} />}
-                {isSupervisor ? 'Entrar como Supervisor' : mode === 'login' ? 'Entrar' : 'Criar conta e entrar'}
+                  : mode === 'forgot' ? <Mail size={16} /> : isSupervisor ? <ShieldCheck size={16} /> : mode === 'login' ? <LogIn size={16} /> : <UserPlus size={16} />}
+                {mode === 'forgot' ? 'Enviar link de redefinição' : isSupervisor ? 'Entrar como Supervisor' : mode === 'login' ? 'Entrar' : 'Criar conta e entrar'}
               </button>
+              {mode === 'forgot' && (
+                <button type="button" onClick={() => goTo('login')} className="w-full text-sm text-gray-500 hover:text-gray-700 font-medium">
+                  Voltar ao login
+                </button>
+              )}
             </form>
 
             {/* Link para área do supervisor — somente visível na tela do aluno */}

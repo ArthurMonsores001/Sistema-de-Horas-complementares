@@ -49,36 +49,31 @@ interface CategoryCardProps {
   onSelect: (categoryId: number) => void
 }
 
-const CAT_STYLES = [
-  { fill: '#3b82f6', track: '#dbeafe', badge: 'bg-blue-50 text-blue-700',   border: 'border-l-blue-400'   },
-  { fill: '#10b981', track: '#d1fae5', badge: 'bg-emerald-50 text-emerald-700', border: 'border-l-emerald-400' },
-  { fill: '#f59e0b', track: '#fef3c7', badge: 'bg-amber-50 text-amber-700', border: 'border-l-amber-400'   },
-  { fill: '#8b5cf6', track: '#ede9fe', badge: 'bg-violet-50 text-violet-700', border: 'border-l-violet-400' },
-]
+const CAT_STYLE = { fill: '#790E18', track: '#f3e2e4', badge: 'bg-vinho-50 text-vinho-700' }
+const CAT_STYLES = [CAT_STYLE, CAT_STYLE, CAT_STYLE, CAT_STYLE]
 
 function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCardProps) {
   const cat = CATEGORIES[catIndex]
-  const style = CAT_STYLES[catIndex]
   const pct = maxPossible > 0 ? Math.min(100, Math.round((effective / maxPossible) * 100)) : 0
 
   return (
     <button
       type="button"
       onClick={() => onSelect(cat.id)}
-      className={`bg-white text-left rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 ${style.border} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
+      className="bg-white text-left rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:border-vinho-200 hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-start justify-between mb-3">
         <span className="text-xl">{cat.icon}</span>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${style.badge}`}>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CAT_STYLE.badge}`}>
           {pct}%
         </span>
       </div>
       <div className="text-2xl font-bold text-gray-900 mb-0.5">{effective}h</div>
       <div className="text-xs font-medium text-gray-500 mb-3">{cat.shortName}</div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: style.track }}>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: CAT_STYLE.track }}>
         <div
           className="h-full rounded-full bar-animated"
-          style={{ width: `${pct}%`, backgroundColor: style.fill }}
+          style={{ width: `${pct}%`, backgroundColor: CAT_STYLE.fill }}
         />
       </div>
       <div className="text-xs text-gray-400 mt-2">de {maxPossible}h possíveis</div>
@@ -181,7 +176,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
   const { state, getTotalEffective, getCategoryEffective, getCategoryMax, getActivityEffective, getActivitySubmitted } = store
 
   const totalEff = getTotalEffective()
-  const required = state.student.totalRequired || 120
+  const required = state.student.totalRequired || 180
   const pct = Math.min(100, Math.round((totalEff / required) * 100))
   const remaining = Math.max(0, required - totalEff)
   const name = state.student.name || null
@@ -223,9 +218,9 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
 
       {/* Missing mandatory categories banner */}
       {missingCategories.length > 0 && (
-        <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-4">
+        <div className="flex flex-wrap sm:flex-nowrap items-start gap-x-4 gap-y-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 sm:px-5 py-4">
           <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-500" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">Categorias obrigatórias incompletas</div>
             <div className="text-xs text-amber-700 mt-0.5 mb-2">
               Para validar suas horas você precisa de ao menos 1 certificado em cada área obrigatória. Faltando:
@@ -240,7 +235,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
           </div>
           <button
             onClick={() => onNavigate('add')}
-            className="flex-shrink-0 text-xs font-semibold bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1.5 rounded-lg transition-colors"
+            className="w-full sm:w-auto flex-shrink-0 text-xs font-semibold bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-2 sm:py-1.5 rounded-lg transition-colors"
           >
             Adicionar certificado
           </button>
@@ -316,7 +311,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
       </div>
 
       {/* Category Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {CATEGORIES.map((_, i) => (
           <CategoryCard
             key={i}

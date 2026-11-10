@@ -6,11 +6,10 @@ import { fetchAllStudentsForSupervisor, reviewCertificate, getAttachmentUrl, sup
 import { StudentProfile, Certificate, CertificateStatus } from '@/lib/types'
 import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
 import LogoutConfirmModal from '@/components/LogoutConfirmModal'
-import SupervisorDashboard from '@/components/SupervisorDashboard'
 import {
   ShieldCheck, LogOut, Search, Users, Clock, RefreshCw, ChevronRight,
   GraduationCap, ArrowLeft, CheckCircle2, XCircle, FileText, ExternalLink,
-  MessageSquare, Save, Eye, Pencil, Settings2,
+  MessageSquare, Save, Eye, Pencil, Settings2, AlertTriangle,
 } from 'lucide-react'
 
 interface SupervisorAreaProps {
@@ -18,7 +17,6 @@ interface SupervisorAreaProps {
 }
 
 type FilterTab = 'all' | 'pending'
-type MainView = 'dashboard' | 'students'
 
 interface EvalState {
   decision: 'approved' | 'rejected' | null
@@ -162,6 +160,8 @@ function StudentEvalView({
     const ev = getEval(cert.id)
     const isDone = ev.done
     const effectiveStatus = isDone ? ev.decision as CertificateStatus : cert.status
+    const act = ACTIVITIES.find(a => a.id === cert.activityId)
+    const exceeded = act ? cert.hours > act.maxHours : false
 
     return (
       <div key={cert.id} className={[
@@ -183,6 +183,14 @@ function StudentEvalView({
           {cert.date && <span className="text-xs text-gray-500">Data: <span className="font-medium">{cert.date}</span></span>}
           {cert.location && <span className="text-xs text-gray-500">Local: <span className="font-medium">{cert.location}</span></span>}
         </div>
+        {exceeded && act && (
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-500" />
+            <p className="text-xs">
+              Aluno declarou {cert.hours}h, limite da atividade é {act.maxHours}h. O excedente ({cert.hours - act.maxHours}h) não conta no total mesmo se aprovado.
+            </p>
+          </div>
+        )}
         {cert.description && (
           <p className="text-xs text-gray-500 mb-3 bg-gray-50 rounded-lg px-3 py-2">{cert.description}</p>
         )}
@@ -324,7 +332,7 @@ function StudentEvalView({
           return (
             <div className="border-t border-dashed border-vinho-200 mt-3 pt-3 space-y-3">
               <p className="text-xs font-semibold text-vinho-700">Corrigir classificação do certificado</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Categoria</label>
                   <select
@@ -472,8 +480,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [view, setView] = useState<MainView>('dashboard')
-  const [filter, setFilter] = useState<FilterTab>('pending')
+  const [filter, setFilter] = useState<FilterTab>('all')
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
@@ -582,13 +589,10 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
       {/* Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <button
-            onClick={() => setView('dashboard')}
-            className="flex items-center gap-2 text-green-700 font-semibold hover:text-green-800 transition-colors"
-          >
+          <div className="flex items-center gap-2 text-green-700 font-semibold">
             <ShieldCheck size={20} />
             <span>Área do Supervisor</span>
-          </button>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-400 hidden sm:block">{store.authUser?.email}</span>
             <button
@@ -603,30 +607,6 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-        {/* Main nav: Alunos (Dashboard is home, reached via header logo or Voltar) */}
-        <div className="mb-6">
-          {view === 'dashboard' ? (
-            <button
-              onClick={() => setView('students')}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              <Users size={14} />
-              Alunos
-            </button>
-          ) : (
-            <button
-              onClick={() => setView('dashboard')}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              <ArrowLeft size={14} />
-              Voltar ao dashboard
-            </button>
-          )}
-        </div>
-
-        {view === 'dashboard' && <SupervisorDashboard profiles={profiles} />}
-
-        {view === 'students' && (<>
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
@@ -649,8 +629,8 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           </div>
         </div>
 
-        {/* Search + Atualizar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-3">
+        {/* Search + filter */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -661,31 +641,29 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
               className="w-full pl-9 pr-4 h-10 rounded-lg border border-gray-200 text-sm text-gray-800 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none bg-white"
             />
           </div>
+          <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1">
+            <button
+              onClick={() => setFilter('all')}
+              className={['flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                filter === 'all' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={['flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
+            >
+              Com pendências
+            </button>
+          </div>
           <button
             onClick={loadStudents}
             disabled={loading}
-            className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50 sm:ml-auto"
+            className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Atualizar
-          </button>
-        </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1 mb-4 w-fit">
-          <button
-            onClick={() => setFilter('all')}
-            className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-              filter === 'all' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
-          >
-            Todos
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-              filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
-          >
-            Com pendências
           </button>
         </div>
 
@@ -763,7 +741,6 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
             })}
           </div>
         )}
-        </>)}
       </main>
 
       <LogoutConfirmModal
