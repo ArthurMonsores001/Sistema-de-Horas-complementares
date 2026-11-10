@@ -49,7 +49,7 @@ interface CategoryCardProps {
   onSelect: (categoryId: number) => void
 }
 
-const CAT_STYLE = { fill: '#790E18', track: '#f3e2e4', badge: 'bg-vinho-50 text-vinho-700' }
+const CAT_STYLE = { fill: '#660510', track: '#F7DFE2', badge: 'bg-vinho-50 text-vinho-700' }
 const CAT_STYLES = [CAT_STYLE, CAT_STYLE, CAT_STYLE, CAT_STYLE]
 
 function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCardProps) {
@@ -245,7 +245,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
       {/* Hero */}
       <div
         className="rounded-2xl overflow-hidden shadow-lg shadow-vinho-900/20"
-        style={{ background: 'linear-gradient(135deg, #26040a 0%, #790E18 50%, #5e0b13 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #330208 0%, #660510 50%, #53040D 100%)' }}
       >
         <div className="px-6 py-6 sm:px-8 sm:py-7">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">

@@ -1,73 +1,159 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { TabId } from '@/lib/types'
-import { LayoutDashboard, PlusCircle, FileText, Settings, GraduationCap } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, FileText, Settings, GraduationCap, PanelLeftClose, PanelLeftOpen, Menu, X, LogOut } from 'lucide-react'
 
-const TABS: { id: TabId; label: string; shortLabel: string; Icon: React.ElementType }[] = [
-  { id: 'dashboard',    label: 'Dashboard',     shortLabel: 'Início',  Icon: LayoutDashboard },
-  { id: 'add',          label: 'Adicionar',     shortLabel: 'Adicionar', Icon: PlusCircle },
-  { id: 'certificates', label: 'Certificados',  shortLabel: 'Certif.', Icon: FileText },
-  { id: 'settings',     label: 'Configurações', shortLabel: 'Config.', Icon: Settings },
+const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
+  { id: 'dashboard',    label: 'Dashboard',     Icon: LayoutDashboard },
+  { id: 'add',          label: 'Adicionar',     Icon: PlusCircle },
+  { id: 'certificates', label: 'Certificados',  Icon: FileText },
+  { id: 'settings',     label: 'Configurações', Icon: Settings },
 ]
+
+const OPEN_KEY = 'hc-menu-open'
 
 interface NavbarProps {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
   displayName?: string
+  onLogout: () => void
 }
 
-export default function Navbar({ activeTab, onTabChange, displayName }: NavbarProps) {
+// Menu lateral nos dois tamanhos.
+// Desktop (sm+): fixo na esquerda, abre e recolhe para so icones.
+// Celular: gaveta que desliza por cima do conteudo, aberta pelo botao do cabecalho.
+export default function Navbar({ activeTab, onTabChange, displayName, onLogout }: NavbarProps) {
   const firstName = displayName?.trim().split(' ')[0]
+  const title = firstName ? `Olá, ${firstName}` : 'Horas Complementares'
+  const [open, setOpen] = useState(true)       // desktop: expandido ou recolhido
+  const [drawer, setDrawer] = useState(false)  // celular: gaveta aberta
+
+  useEffect(() => {
+    try { if (localStorage.getItem(OPEN_KEY) === '0') setOpen(false) } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => {
+    if (!drawer) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [drawer])
+
+  const toggle = () => {
+    setOpen(prev => {
+      try { localStorage.setItem(OPEN_KEY, prev ? '0' : '1') } catch { /* ignore */ }
+      return !prev
+    })
+  }
+
+  // No celular o rotulo sempre aparece; no desktop some quando recolhido
+  const label = open ? '' : 'sm:hidden'
+  const item = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap'
+  const idle = 'text-white/60 hover:text-white hover:bg-white/10'
 
   return (
-    <nav className="sticky top-0 z-50" style={{
-      background: 'linear-gradient(135deg, #26040a 0%, #790E18 50%, #26040a 100%)',
-    }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center h-14 gap-2 sm:gap-6">
+    <>
+      {/* Cabecalho do celular */}
+      <header className="sm:hidden sticky top-0 z-30 bg-vinho-600 h-12 px-2 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setDrawer(true)}
+          aria-label="Abrir menu"
+          aria-expanded={drawer}
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-white hover:bg-white/10"
+        >
+          <Menu size={20} />
+        </button>
+        <span className="text-white font-semibold text-sm truncate">{title}</span>
+      </header>
+
+      {/* Fundo escuro atras da gaveta */}
+      {drawer && (
+        <div
+          className="sm:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setDrawer(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <nav
+        aria-label="Menu principal"
+        className={[
+          'fixed inset-y-0 left-0 z-50 w-64 max-w-[80vw] bg-vinho-600 transition-[transform,visibility,width] duration-200',
+          drawer ? 'translate-x-0' : '-translate-x-full invisible',
+          'sm:sticky sm:top-0 sm:bottom-auto sm:h-screen sm:max-w-none sm:translate-x-0 sm:visible sm:flex-shrink-0',
+          open ? 'sm:w-56' : 'sm:w-16',
+        ].join(' ')}
+      >
+        <div className="flex flex-col h-full gap-1 px-2 py-3">
           {/* Logo */}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-vinho-500 flex items-center justify-center shadow-md shadow-vinho-900/50">
+          <div className="flex items-center gap-2.5 px-2 pb-3 mb-2 border-b border-white/10">
+            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
               <GraduationCap size={17} className="text-white" />
             </div>
-            <div className="hidden sm:block">
-              <span className="block text-white font-semibold text-sm leading-tight">
-                {firstName ? `Bem-vindo, ${firstName}` : 'Horas Complementares'}
-              </span>
+            <div className={`${label} min-w-0 flex-1`}>
+              <span className="block text-white font-semibold text-sm leading-tight truncate">{title}</span>
               {firstName && (
-                <span className="block text-white/45 text-[11px] leading-tight">
-                  Horas Complementares
-                </span>
+                <span className="block text-white/50 text-[11px] leading-tight truncate">Horas Complementares</span>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setDrawer(false)}
+              aria-label="Fechar menu"
+              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10"
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          {/* Divider */}
-          <div className="h-5 w-px bg-white/10 hidden sm:block" />
+          {TABS.map(({ id, label: text, Icon }) => (
+            <button
+              key={id}
+              onClick={() => { onTabChange(id); setDrawer(false) }}
+              aria-label={text}
+              title={open ? undefined : text}
+              aria-current={activeTab === id ? 'page' : undefined}
+              className={[
+                item,
+                // Configuracoes desce para o rodape, junto de Sair
+                id === 'settings' ? 'mt-auto' : '',
+                open ? '' : 'sm:justify-center',
+                activeTab === id ? 'bg-white/15 text-white' : idle,
+              ].join(' ')}
+            >
+              <Icon size={17} className="flex-shrink-0" />
+              <span className={label}>{text}</span>
+            </button>
+          ))}
 
-          {/* Tabs */}
-          <div className="flex gap-0.5 overflow-x-auto flex-1 scrollbar-none">
-            {TABS.map(({ id, label, shortLabel, Icon }) => (
-              <button
-                key={id}
-                onClick={() => onTabChange(id)}
-                aria-label={label}
-                aria-current={activeTab === id ? 'page' : undefined}
-                className={[
-                  'flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none min-w-0 px-1 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-sm font-medium transition-all duration-150 whitespace-nowrap sm:flex-shrink-0',
-                  activeTab === id
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/60 hover:text-white hover:bg-white/8',
-                ].join(' ')}
-              >
-                <Icon size={15} />
-                <span className="hidden sm:inline">{label}</span>
-                <span className="sm:hidden">{shortLabel}</span>
-              </button>
-            ))}
-          </div>
+          {/* Sair: pede confirmacao no modal */}
+          <button
+            type="button"
+            onClick={() => { setDrawer(false); onLogout() }}
+            aria-label="Sair da conta"
+            title={open ? undefined : 'Sair da conta'}
+            className={[item, idle, open ? '' : 'sm:justify-center'].join(' ')}
+          >
+            <LogOut size={17} className="flex-shrink-0" />
+            <span className={label}>Sair</span>
+          </button>
+
+          {/* Abrir / recolher (so desktop) */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={open}
+            aria-label={open ? 'Recolher menu' : 'Abrir menu'}
+            title={open ? 'Recolher menu' : 'Abrir menu'}
+            className={['hidden sm:flex', item, idle, open ? '' : 'justify-center'].join(' ')}
+          >
+            {open ? <PanelLeftClose size={17} className="flex-shrink-0" /> : <PanelLeftOpen size={17} className="flex-shrink-0" />}
+            <span className={label}>Recolher</span>
+          </button>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   )
 }

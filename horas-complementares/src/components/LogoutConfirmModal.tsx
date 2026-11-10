@@ -35,7 +35,7 @@ export default function LogoutConfirmModal({
           style={{
             background: isSupervisor
               ? 'linear-gradient(135deg, #0f3d2e 0%, #166534 55%, #15803d 100%)'
-              : 'linear-gradient(135deg, #2b0a11 0%, #7f1d2d 58%, #9f1239 100%)',
+              : 'linear-gradient(135deg, #330208 0%, #660510 58%, #53040D 100%)',
           }}
         >
           <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.28),transparent_65%)]" />
