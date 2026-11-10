@@ -183,7 +183,22 @@ export function useStore() {
         setApiStatus('local')
       }
     })
-    return () => subscription.unsubscribe()
+
+    // Ao voltar para a aba, confirma no servidor que o usuario ainda existe
+    const recheck = async () => {
+      if (document.visibilityState !== 'visible') return
+      const { data } = await supabase.auth.getSession()
+      if (data.session && !(await getSession())) {
+        const { data: after } = await supabase.auth.getSession()
+        if (!after.session) window.location.reload()
+      }
+    }
+    document.addEventListener('visibilitychange', recheck)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', recheck)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

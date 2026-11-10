@@ -55,6 +55,13 @@ input:focus, select:focus, textarea:focus {
   outline: none;
 }
 
+/* iOS da zoom na pagina quando o campo tem fonte menor que 16px */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Dark mode compatibility for the existing Tailwind palette */
 .dark .bg-white { background-color: #111827; }
 .dark .bg-gray-50 { background-color: #1f2937; }

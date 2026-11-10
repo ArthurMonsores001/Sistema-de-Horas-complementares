@@ -332,7 +332,7 @@ function StudentEvalView({
           return (
             <div className="border-t border-dashed border-vinho-200 mt-3 pt-3 space-y-3">
               <p className="text-xs font-semibold text-vinho-700">Corrigir classificação do certificado</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Categoria</label>
                   <select
@@ -644,14 +644,14 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1">
             <button
               onClick={() => setFilter('all')}
-              className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              className={['flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 filter === 'all' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
             >
               Todos
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={['px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              className={['flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 filter === 'pending' ? 'bg-vinho-600 text-white' : 'text-gray-500 hover:bg-gray-50'].join(' ')}
             >
               Com pendências
@@ -660,7 +660,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
           <button
             onClick={loadStudents}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 h-10 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Atualizar

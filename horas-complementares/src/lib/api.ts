@@ -72,9 +72,15 @@ export async function signOut(): Promise<void> {
 
 export async function getSession(): Promise<AuthUser | null> {
   try {
-    const { data } = await supabase.auth.getUser()
+    const { data, error } = await supabase.auth.getUser()
     const user = data.user
-    if (!user) return null
+    if (!user) {
+      // 401/403 = servidor recusou o token (usuario excluido ou sessao revogada).
+      // Erro de rede nao tem esse status, entao nao derruba quem esta offline.
+      const status = (error as { status?: number } | null)?.status
+      if (status === 401 || status === 403) await supabase.auth.signOut({ scope: 'local' })
+      return null
+    }
     return { id: user.id, email: user.email ?? '' }
   } catch {
     // Chamada concorrente (ex: StrictMode) pode ter o lock de auth "roubado"

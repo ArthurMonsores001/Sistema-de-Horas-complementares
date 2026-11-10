@@ -352,7 +352,7 @@ export default function Certificates({ store }: CertificatesProps) {
                 key={cert.id}
                 className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${style.border} p-4 transition-shadow duration-200 hover:shadow-md`}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex flex-wrap sm:flex-nowrap items-start gap-3">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${style.badge}`}>
                     {category.icon}
                   </div>
@@ -401,6 +401,7 @@ export default function Certificates({ store }: CertificatesProps) {
                     )}
                   </div>
 
+                  <div className="flex w-full sm:w-auto justify-end gap-1 sm:gap-3 border-t border-gray-100 pt-2 sm:border-0 sm:pt-0 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setViewing(cert)}
@@ -431,6 +432,7 @@ export default function Certificates({ store }: CertificatesProps) {
                   >
                     <Trash2 size={15} />
                   </button>
+                  </div>
                 </div>
               </article>
             )
@@ -440,7 +442,7 @@ export default function Certificates({ store }: CertificatesProps) {
 
       {showSubmitModal && (
         <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
+          <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Enviar para avaliação</h2>
@@ -612,7 +614,7 @@ export default function Certificates({ store }: CertificatesProps) {
 
       {editing && editForm && (
         <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
-          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
+          <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Editar certificado</h2>

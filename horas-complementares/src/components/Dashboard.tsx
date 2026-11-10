@@ -60,7 +60,7 @@ function CategoryCard({ catIndex, effective, maxPossible, onSelect }: CategoryCa
     <button
       type="button"
       onClick={() => onSelect(cat.id)}
-      className="bg-white text-left rounded-xl p-5 shadow-sm border border-gray-100 hover:border-vinho-200 hover:shadow-md transition-all duration-200"
+      className="bg-white text-left rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:border-vinho-200 hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-start justify-between mb-3">
         <span className="text-xl">{cat.icon}</span>
@@ -218,9 +218,9 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
 
       {/* Missing mandatory categories banner */}
       {missingCategories.length > 0 && (
-        <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-4">
+        <div className="flex flex-wrap sm:flex-nowrap items-start gap-x-4 gap-y-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 sm:px-5 py-4">
           <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-500" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">Categorias obrigatórias incompletas</div>
             <div className="text-xs text-amber-700 mt-0.5 mb-2">
               Para validar suas horas você precisa de ao menos 1 certificado em cada área obrigatória. Faltando:
@@ -235,7 +235,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
           </div>
           <button
             onClick={() => onNavigate('add')}
-            className="flex-shrink-0 text-xs font-semibold bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1.5 rounded-lg transition-colors"
+            className="w-full sm:w-auto flex-shrink-0 text-xs font-semibold bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-2 sm:py-1.5 rounded-lg transition-colors"
           >
             Adicionar certificado
           </button>
@@ -311,7 +311,7 @@ export default function Dashboard({ store, onNavigate, onCategorySelect }: Dashb
       </div>
 
       {/* Category Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {CATEGORIES.map((_, i) => (
           <CategoryCard
             key={i}
