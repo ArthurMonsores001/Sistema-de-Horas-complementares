@@ -90,7 +90,12 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Apontar dominio de HML
-        run: vercel alias set "${{ steps.deploy.outputs.url }}" "$HML_DOMAIN" --scope="$VERCEL_ORG_ID" --token="$VERCEL_TOKEN"
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          host="${DEPLOY_URL#https://}"
+          id=$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v13/deployments/$host?teamId=$VERCEL_ORG_ID" | jq -r .id)
+          curl -fsS -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" -d "{\"alias\":\"$HML_DOMAIN\"}" "https://api.vercel.com/v2/deployments/$id/aliases?teamId=$VERCEL_ORG_ID"
 
   deploy-prod:
     name: Deploy PROD
