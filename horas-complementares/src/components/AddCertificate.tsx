@@ -636,7 +636,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
 
       {/* Limit exceeded dialog */}
       {showLimitDialog && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -675,7 +675,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
 
       {expandPreview && previewSrc && (
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-slate-950/70"
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
           onClick={() => setExpandPreview(false)}
         >
           <img src={previewSrc} alt="certificado ampliado" className="max-w-full max-h-[85vh] rounded-lg" />
