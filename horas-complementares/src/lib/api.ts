@@ -17,16 +17,53 @@ export interface AuthUser {
   email: string
 }
 
+const AUTH_ERRORS: Record<string, string> = {
+  invalid_credentials: 'E-mail ou senha incorretos.',
+  email_not_confirmed: 'Confirme seu e-mail antes de entrar.',
+  user_already_exists: 'Este e-mail já está cadastrado.',
+  weak_password: 'Senha fraca. Use no mínimo 10 caracteres, com letra, número e caractere especial.',
+  over_request_rate_limit: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+  over_email_send_rate_limit: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+}
+
+function authMessage(error: { code?: string; message?: string; status?: number } | null, fallback: string): string {
+  if (!error) return fallback
+  if (error.code && AUTH_ERRORS[error.code]) return AUTH_ERRORS[error.code]
+  if (error.message === 'Invalid login credentials') return AUTH_ERRORS.invalid_credentials
+  if (error.message === 'User already registered') return AUTH_ERRORS.user_already_exists
+  if (error.status === 429) return AUTH_ERRORS.over_request_rate_limit
+  return fallback
+}
+
 export async function signUp(email: string, password: string): Promise<AuthUser> {
-  const { data, error } = await supabase.auth.signUp({ email, password })
-  if (error || !data.user) throw new Error(error?.message ?? 'Falha ao criar conta.')
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${window.location.origin}/` },
+  })
+  if (error || !data.user) throw new Error(authMessage(error, 'Falha ao criar conta.'))
   return { id: data.user.id, email: data.user.email ?? '' }
 }
 
 export async function signIn(email: string, password: string): Promise<AuthUser> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error || !data.user) throw new Error(error?.message ?? 'Usuário ou senha incorretos.')
+  if (error || !data.user) throw new Error(authMessage(error, 'Não foi possível entrar. Tente novamente.'))
   return { id: data.user.id, email: data.user.email ?? '' }
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/`,
+  })
+  if (error) throw new Error(authMessage(error, 'Não foi possível enviar o e-mail. Tente novamente.'))
+}
+
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) {
+    const same = error.code === 'same_password'
+    throw new Error(same ? 'A nova senha deve ser diferente da atual.' : authMessage(error, 'Não foi possível alterar a senha. Tente novamente.'))
+  }
 }
 
 export async function signOut(): Promise<void> {

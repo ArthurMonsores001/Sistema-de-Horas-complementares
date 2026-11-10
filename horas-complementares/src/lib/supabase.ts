@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// Lido antes do createClient, que consome e limpa o hash da URL do link de e-mail
+const urlHash = typeof window !== 'undefined' ? window.location.hash : ''
+export const openedRecoveryLink = urlHash.includes('type=recovery')
+export const openedExpiredLink = urlHash.includes('error_code=otp_expired')
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ── Types that mirror the DB rows ─────────────────────────────────
