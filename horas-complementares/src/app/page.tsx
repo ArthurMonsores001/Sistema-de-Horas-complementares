@@ -14,6 +14,7 @@ import SyncStatus from '@/components/SyncStatus'
 import SupervisorArea from '@/components/SupervisorArea'
 import EvaluationNotification from '@/components/EvaluationNotification'
 import Footer from '@/components/Footer'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('dashboard')
@@ -24,6 +25,7 @@ export default function App() {
     setTab('dashboard')
   }, [store.authUser])
 
+  const [showLogout, setShowLogout] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const retry = async () => {
     setRetrying(true)
@@ -74,7 +76,7 @@ export default function App() {
           </div>
         </div>
       ) : (
-      <div className="min-h-screen flex flex-col bg-[#f0f2f8]">
+      <div className="min-h-screen flex flex-col sm:flex-row bg-[#f0f2f8]">
         {store.authUser && store.userRole === 'student' && (
           <EvaluationNotification
             certificates={store.state.certificates}
@@ -85,7 +87,19 @@ export default function App() {
           activeTab={tab}
           onTabChange={setTab}
           displayName={store.state.student.name || store.authUser?.email}
+          onLogout={() => setShowLogout(true)}
         />
+        <LogoutConfirmModal
+          open={showLogout}
+          email={store.authUser?.email}
+          context="student"
+          onClose={() => setShowLogout(false)}
+          onConfirm={() => {
+            setShowLogout(false)
+            store.logout()
+          }}
+        />
+        <div className="flex-1 min-w-0 flex flex-col">
         <SyncStatus store={store} />
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6">
           <div className="view-enter">
@@ -97,6 +111,7 @@ export default function App() {
           </div>
         </main>
         <Footer />
+        </div>
       </div>
       )}
     </AuthGate>

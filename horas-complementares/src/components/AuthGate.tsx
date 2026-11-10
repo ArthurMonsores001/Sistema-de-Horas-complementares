@@ -193,7 +193,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
       <div className="min-h-screen bg-[#f0f2f8] flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl shadow-vinho-900/10 border border-gray-100 overflow-hidden">
-            <div className="px-6 py-7 text-white" style={{ background: 'linear-gradient(135deg, #26040a 0%, #790E18 55%, #5e0b13 100%)' }}>
+            <div className="px-6 py-7 text-white" style={{ background: 'linear-gradient(135deg, #330208 0%, #660510 55%, #53040D 100%)' }}>
               <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-4">
                 <KeyRound size={22} />
               </div>
@@ -255,7 +255,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
             style={{
               background: isSupervisor
                 ? 'linear-gradient(135deg, #14532d 0%, #15803d 55%, #16a34a 100%)'
-                : 'linear-gradient(135deg, #26040a 0%, #790E18 55%, #5e0b13 100%)',
+                : 'linear-gradient(135deg, #330208 0%, #660510 55%, #53040D 100%)',
             }}
           >
             {isSupervisor && (
