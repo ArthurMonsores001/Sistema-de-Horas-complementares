@@ -60,7 +60,7 @@ export default function EvaluationNotification({ certificates, userId }: Evaluat
     ACTIVITIES.find(a => a.id === actId)?.name ?? `Atividade #${actId}`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
+    <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={handleClose} />
 

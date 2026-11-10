@@ -19,7 +19,7 @@ export default function OfficialModelModal({ open, onClose }: OfficialModelModal
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+    <div className="fixed inset-0 backdrop-blur-sm z-[70] flex items-center justify-center px-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">

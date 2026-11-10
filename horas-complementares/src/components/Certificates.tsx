@@ -439,7 +439,7 @@ export default function Certificates({ store }: CertificatesProps) {
       )}
 
       {showSubmitModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+        <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
           <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
@@ -531,7 +531,7 @@ export default function Certificates({ store }: CertificatesProps) {
         const usage = usageById[pendingDelete.id] ?? { effectiveHours: pendingDelete.hours, excessHours: 0 }
 
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
             <div className="w-full max-w-md overflow-hidden rounded-2xl border border-red-100 bg-white shadow-2xl">
               <div className="border-b border-red-100 bg-gradient-to-r from-red-50 via-white to-red-100 px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -611,7 +611,7 @@ export default function Certificates({ store }: CertificatesProps) {
       })()}
 
       {editing && editForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+        <div className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-4">
           <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-100 p-5">
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
@@ -748,7 +748,7 @@ export default function Certificates({ store }: CertificatesProps) {
 
         return (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center px-3 py-4 sm:px-4 sm:py-6"
+            className="fixed inset-0 backdrop-blur-sm z-[60] flex items-center justify-center px-3 py-4 sm:px-4 sm:py-6"
             onClick={() => setViewing(null)}
           >
             <div
