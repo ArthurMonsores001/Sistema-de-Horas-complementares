@@ -153,6 +153,14 @@ export function useStore() {
 
       // Check Supabase session
       const user = await getSession()
+
+      // Tokens do link de e-mail ja foram consumidos: tira o hash da barra de enderecos
+      try {
+        if (/access_token|refresh_token|error_code/.test(window.location.hash)) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        }
+      } catch { /* ignore */ }
+
       if (user) {
         setAuthUser(user)
         setApiStatus('online')
