@@ -24,7 +24,14 @@ export default function App() {
     setTab('dashboard')
   }, [store.authUser])
 
-  const openCategory = (categoryId: number) => {
+  const [retrying, setRetrying] = useState(false)
+  const retry = async () => {
+    setRetrying(true)
+    await store.retryLoad()
+    setRetrying(false)
+  }
+
+  const openCategory =(categoryId: number) => {
     setSelectedCategoryId(categoryId)
     setTab('category')
   }
@@ -42,6 +49,31 @@ export default function App() {
 
   return (
     <AuthGate store={store} supervisorArea={<SupervisorArea store={store} />}>
+      {store.loadFailed ? (
+        <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8] px-4">
+          <div role="alert" className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-xl shadow-vinho-900/10 p-6 text-center">
+            <h1 className="text-lg font-bold text-slate-800">Não foi possível carregar seus dados</h1>
+            <p className="text-sm text-slate-500 mt-2">
+              Seus dados continuam salvos. Verifique a conexão e tente de novo.
+            </p>
+            <button
+              type="button"
+              onClick={retry}
+              disabled={retrying}
+              className="mt-5 w-full rounded-lg bg-vinho-500 hover:bg-vinho-600 text-white text-sm font-semibold py-2.5 disabled:opacity-60"
+            >
+              {retrying ? 'Carregando...' : 'Tentar de novo'}
+            </button>
+            <button
+              type="button"
+              onClick={store.logout}
+              className="mt-2 w-full rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 py-2"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="min-h-screen flex flex-col bg-[#f0f2f8]">
         {store.authUser && store.userRole === 'student' && (
           <EvaluationNotification
@@ -66,6 +98,7 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      )}
     </AuthGate>
   )
 }

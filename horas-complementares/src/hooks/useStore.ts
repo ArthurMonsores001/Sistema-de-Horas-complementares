@@ -128,6 +128,7 @@ export function useStore() {
   const [hydrated, setHydrated] = useState(false)
   const [recovering, setRecovering] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   // ── Hydration: local storage + Supabase session ───────────────
   useEffect(() => {
@@ -164,9 +165,7 @@ export function useStore() {
       if (user) {
         setAuthUser(user)
         setApiStatus('online')
-        const role = await getUserRole(user.id)
-        setUserRole(role)
-        if (role === 'student') await pullRemoteProfiles(user)
+        await loadUserData(user)
       }
 
       setAuthChecking(false)
@@ -203,7 +202,7 @@ export function useStore() {
   }, [])
 
   // ── Internal: pull all profiles from Supabase ─────────────────
-  const pullRemoteProfiles = useCallback(async (user?: AuthUser) => {
+  const pullRemoteProfiles = useCallback(async (user?: AuthUser, rethrow = false) => {
     const u = user ?? authUser
     if (!u) return
     try {
@@ -229,19 +228,41 @@ export function useStore() {
     } catch (err) {
       setApiStatus('error')
       setApiError(err instanceof Error ? err.message : 'Erro ao buscar dados.')
+      if (rethrow) throw err
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser])
 
+  // ── Internal: papel + perfis, com uma nova tentativa automatica ──
+  // Devolve null se falhou: a tela mostra erro em vez de uma conta vazia.
+  const loadUserData = useCallback(async (user: AuthUser): Promise<UserRole | null> => {
+    const attempt = async () => {
+      const role = await getUserRole(user.id)
+      setUserRole(role)
+      if (role === 'student') await pullRemoteProfiles(user, true)
+      return role
+    }
+    try {
+      const role = await attempt().catch(attempt)
+      setLoadFailed(false)
+      return role
+    } catch {
+      setLoadFailed(true)
+      setApiStatus('error')
+      return null
+    }
+  }, [pullRemoteProfiles])
+
+  const retryLoad = useCallback(async () => {
+    if (authUser) await loadUserData(authUser)
+  }, [authUser, loadUserData])
+
   // ── Auth callbacks ────────────────────────────────────────────
-  const onAuthSuccess = useCallback(async (user: AuthUser): Promise<UserRole> => {
+  const onAuthSuccess = useCallback(async (user: AuthUser): Promise<UserRole | null> => {
     setAuthUser(user)
     setApiStatus('online')
-    const role = await getUserRole(user.id)
-    setUserRole(role)
-    if (role === 'student') await pullRemoteProfiles(user)
-    return role
-  }, [pullRemoteProfiles])
+    return loadUserData(user)
+  }, [loadUserData])
 
   const finishRecovery = useCallback(() => {
     setRecovering(false)
@@ -258,6 +279,7 @@ export function useStore() {
     await signOut()
     setAuthUser(null)
     setUserRole('student')
+    setLoadFailed(false)
     setApiStatus('local')
     setApiError('')
     setProfiles({})
@@ -768,6 +790,8 @@ export function useStore() {
     hydrated,
     recovering,
     linkExpired,
+    loadFailed,
+    retryLoad,
 
     // Computed
     getCertificateUsage,

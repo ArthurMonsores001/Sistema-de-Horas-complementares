@@ -146,13 +146,16 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
       if (mode === 'register') signUpSucceeded = true
       const role = await store.onAuthSuccess(user)
 
+      // Dados nao carregaram: o app mostra a tela de erro com "Tentar de novo"
+      if (role === null && mode === 'login') return
+
       if (area === 'supervisor' && role !== 'supervisor') {
         await store.logout()
         setMessage('Esta conta não tem permissão de supervisor.')
         return
       }
 
-      if (mode === 'register' && role === 'student') {
+      if (mode === 'register' && role !== 'supervisor') {
         const saved = await store.saveProfile({
           name: name.trim(),
           registration: registration.trim(),
