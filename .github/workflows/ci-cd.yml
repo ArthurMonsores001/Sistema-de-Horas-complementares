@@ -106,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: prod
-      url: ${{ steps.deploy.outputs.url }}
+      url: https://horas-complementares-phi.vercel.app
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
