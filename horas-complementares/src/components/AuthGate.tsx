@@ -5,8 +5,10 @@ import { StoreType } from '@/hooks/useStore'
 import { signIn, signUp, requestPasswordReset, updatePassword } from '@/lib/api'
 import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
 import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft, Mail, KeyRound } from 'lucide-react'
+import { isStrongPassword, missingPasswordRules } from '@/lib/passwordRules'
+import PasswordChecklist from './PasswordChecklist'
+import PasswordInput from './PasswordInput'
 
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/
 
 interface AuthGateProps {
   store: StoreType
@@ -61,6 +63,14 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
   }
 
   const goTo = (next: 'login' | 'register' | 'forgot') => {
+    if (mode === 'register' || next === 'register') {
+      setEmail('')
+      setName('')
+      setRegistration('')
+      setCourse('')
+      setEngineeringType('')
+    }
+    setPassword('')
     setMode(next)
     setMessage('')
     setInfo('')
@@ -69,8 +79,8 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
   const saveNewPassword = async (event: React.FormEvent) => {
     event.preventDefault()
     setMessage('')
-    if (!PASSWORD_RULE.test(newPassword)) {
-      setMessage('A senha precisa ter no mínimo 10 caracteres, com letra, número e caractere especial.')
+    if (!isStrongPassword(newPassword)) {
+      setMessage(`A senha ainda não cumpre os requisitos. Falta: ${missingPasswordRules(newPassword).join(', ')}.`)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -127,8 +137,8 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         return
       }
 
-      if (mode === 'register' && !PASSWORD_RULE.test(password)) {
-        setMessage('A senha precisa ter no mínimo 10 caracteres, com letra, número e caractere especial.')
+      if (mode === 'register' && !isStrongPassword(password)) {
+        setMessage(`A senha ainda não cumpre os requisitos. Falta: ${missingPasswordRules(password).join(', ')}.`)
         return
       }
 
@@ -190,16 +200,17 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
             <form onSubmit={saveNewPassword} className="px-6 pt-5 pb-6 space-y-4">
               <label className="block">
                 <span className="block text-sm font-medium text-gray-700 mb-1.5">Nova senha</span>
-                <input
-                  required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                  placeholder="mín. 10, com letra, número e especial"
+                <PasswordInput
+                  required value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Crie uma senha forte"
                   className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
                 />
+                <PasswordChecklist password={newPassword} />
               </label>
               <label className="block">
                 <span className="block text-sm font-medium text-gray-700 mb-1.5">Confirmar nova senha</span>
-                <input
-                  required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                <PasswordInput
+                  required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Repita a nova senha"
                   className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
                 />
@@ -364,11 +375,12 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
               {mode !== 'forgot' && (
                 <label className="block">
                   <span className="block text-sm font-medium text-gray-700 mb-1.5">Senha</span>
-                  <input
-                    required type="password" value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder={mode === 'register' ? 'mín. 10, com letra, número e especial' : 'Sua senha'}
+                  <PasswordInput
+                    key={mode} required value={password} onChange={e => setPassword(e.target.value)}
+                    placeholder={mode === 'register' ? 'Crie uma senha forte' : 'Sua senha'}
                     className="w-full min-h-11 px-3.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:border-vinho-400 focus:ring-2 focus:ring-vinho-100 outline-none"
                   />
+                  {mode === 'register' && <PasswordChecklist password={password} />}
                   {mode === 'login' && (
                     <button
                       type="button" onClick={() => goTo('forgot')}
