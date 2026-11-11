@@ -271,6 +271,20 @@ export async function uploadAttachment(
   return path
 }
 
+/**
+ * Pede ao servidor para calcular o hash do arquivo ja enviado ao Storage.
+ * O banco so aceita certificado com anexo depois desta chamada e usa o hash
+ * calculado aqui, nao o que o navegador informar.
+ */
+export async function registerAttachmentHash(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('hash-attachment', {
+    body: { storage_path: storagePath },
+  })
+  const fileHash = (data as { file_hash?: string } | null)?.file_hash
+  if (error || !fileHash) throw new Error('Não foi possível verificar o arquivo anexado. Tente novamente.')
+  return fileHash
+}
+
 export async function getAttachmentUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from('certificates')

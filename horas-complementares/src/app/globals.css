@@ -45,6 +45,10 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .view-enter { animation: none; }
+}
+
 /* Progress bar animation */
 .bar-animated {
   transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);

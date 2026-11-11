@@ -16,6 +16,7 @@ import {
   deleteCertificateRemote,
   findCertificateByFileHash,
   uploadAttachment,
+  registerAttachmentHash,
   getAttachmentUrl,
   submitCertificateForReview,
   submitMultipleCertificatesForReview,
@@ -386,7 +387,9 @@ export function useStore() {
           for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
           const file = new File([ab], cert.attachment.name, { type: mimeString })
           const storagePath = await uploadAttachment(authUser.id, file)
-          savedCert = { ...savedCert, attachment: { ...cert.attachment, dataUrl: undefined, storagePath } }
+          // Hash oficial e o do servidor; o calculado no navegador so serve para o aviso previo
+          const fileHash = await registerAttachmentHash(storagePath)
+          savedCert = { ...savedCert, attachment: { ...cert.attachment, dataUrl: undefined, storagePath, fileHash } }
         }
 
         if (!profileRowId) throw new Error('Perfil não encontrado.')

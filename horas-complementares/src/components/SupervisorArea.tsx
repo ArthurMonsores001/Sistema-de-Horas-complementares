@@ -5,6 +5,7 @@ import { StoreType } from '@/hooks/useStore'
 import { fetchAllStudentsForSupervisor, reviewCertificate, getAttachmentUrl, supervisorEditCertificate } from '@/lib/api'
 import { StudentProfile, Certificate, CertificateStatus } from '@/lib/types'
 import { ACTIVITIES, CATEGORIES, SELECTABLE_CATEGORIES } from '@/lib/data'
+import { findSharedFiles, SharedFileOwner } from '@/lib/duplicateChecker'
 import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import {
   ShieldCheck, LogOut, Search, Users, Clock, RefreshCw, ChevronRight,
@@ -63,8 +64,10 @@ function StudentEvalView({
   onBack,
   onProfileUpdate,
   onCertDataUpdate,
+  sharedFiles,
 }: {
   profile: StudentProfile
+  sharedFiles: Map<string, SharedFileOwner[]>
   onBack: () => void
   onProfileUpdate: (reg: string, certId: number, status: 'approved' | 'rejected', comment: string) => void
   onCertDataUpdate: (reg: string, certId: number, patch: { activityId: number; hours: number }) => void
@@ -162,6 +165,8 @@ function StudentEvalView({
     const effectiveStatus = isDone ? ev.decision as CertificateStatus : cert.status
     const act = ACTIVITIES.find(a => a.id === cert.activityId)
     const exceeded = act ? cert.hours > act.maxHours : false
+    const sameFileOwners = (sharedFiles.get(cert.attachment?.fileHash ?? '') ?? [])
+      .filter(o => o.registration !== profile.registration)
 
     return (
       <div key={cert.id} className={[
@@ -188,6 +193,14 @@ function StudentEvalView({
             <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-500" />
             <p className="text-xs">
               Aluno declarou {cert.hours}h, limite da atividade é {act.maxHours}h. O excedente ({cert.hours - act.maxHours}h) não conta no total mesmo se aprovado.
+            </p>
+          </div>
+        )}
+        {sameFileOwners.length > 0 && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-800 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-red-500" />
+            <p className="text-xs">
+              Este mesmo arquivo também foi enviado por: {sameFileOwners.map(o => `${o.name} (${o.registration})`).join(', ')}. Confira se o certificado é nominal a este aluno.
             </p>
           </div>
         )}
@@ -558,6 +571,8 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
     [profiles],
   )
 
+  const sharedFiles = useMemo(() => findSharedFiles(profiles), [profiles])
+
   const filtered = useMemo(() => {
     let list = profiles
     if (filter === 'pending') list = list.filter(p => pendingCount(p) > 0)
@@ -580,6 +595,7 @@ export default function SupervisorArea({ store }: SupervisorAreaProps) {
         onBack={() => setSelectedProfile(null)}
         onProfileUpdate={handleProfileUpdate}
         onCertDataUpdate={handleCertDataUpdate}
+        sharedFiles={sharedFiles}
       />
     )
   }
