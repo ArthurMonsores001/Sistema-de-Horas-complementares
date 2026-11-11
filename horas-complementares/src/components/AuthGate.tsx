@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { StoreType } from '@/hooks/useStore'
 import { signIn, signUp, requestPasswordReset, updatePassword } from '@/lib/api'
 import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
-import { LockKeyhole, LogIn, UserPlus, ShieldCheck, ArrowLeft, Mail, KeyRound } from 'lucide-react'
+import { LogIn, UserPlus, ShieldCheck, ArrowLeft, Mail, KeyRound } from 'lucide-react'
 import { isStrongPassword, missingPasswordRules } from '@/lib/passwordRules'
 import PasswordChecklist from './PasswordChecklist'
 import PasswordInput from './PasswordInput'
@@ -190,17 +190,8 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
 
   if (store.authUser && store.recovering) {
     return (
-      <div className="min-h-screen bg-[#f0f2f8] flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl shadow-vinho-900/10 border border-gray-100 overflow-hidden">
-            <div className="px-6 py-7 text-white" style={{ background: 'linear-gradient(135deg, #330208 0%, #660510 55%, #53040D 100%)' }}>
-              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-4">
-                <KeyRound size={22} />
-              </div>
-              <h1 className="text-xl font-bold">Criar nova senha</h1>
-              <p className="text-sm mt-1 opacity-80">Escolha uma nova senha para acessar sua conta.</p>
-            </div>
-            <form onSubmit={saveNewPassword} className="px-6 pt-5 pb-6 space-y-4">
+      <AuthShell tone="student" title="Criar nova senha" subtitle="Escolha uma nova senha para acessar sua conta.">
+            <form onSubmit={saveNewPassword} className="space-y-4">
               <label className="block">
                 <span className="block text-sm font-medium text-gray-700 mb-1.5">Nova senha</span>
                 <PasswordInput
@@ -232,9 +223,7 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
                 Cancelar
               </button>
             </form>
-          </div>
-        </div>
-      </div>
+      </AuthShell>
     )
   }
 
@@ -245,70 +234,33 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
   const isSupervisor = area === 'supervisor'
 
   return (
-    <div className="min-h-screen bg-[#f0f2f8] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl shadow-vinho-900/10 border border-gray-100 overflow-hidden">
-
-          {/* ── Header ── */}
-          <div
-            className="px-6 py-7 text-white"
-            style={{
-              background: isSupervisor
-                ? 'linear-gradient(135deg, #14532d 0%, #15803d 55%, #16a34a 100%)'
-                : 'linear-gradient(135deg, #330208 0%, #660510 55%, #53040D 100%)',
-            }}
-          >
-            {isSupervisor && (
-              <button
-                type="button"
-                onClick={() => switchArea('student')}
-                className="flex items-center gap-1.5 text-white/70 hover:text-white text-xs font-medium mb-4 transition-colors"
-              >
-                <ArrowLeft size={13} />
-                Voltar para área do aluno
-              </button>
-            )}
-            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-4">
-              {isSupervisor ? <ShieldCheck size={22} /> : <LockKeyhole size={22} />}
-            </div>
-            <h1 className="text-xl font-bold">
-              {mode === 'forgot' ? 'Redefinir senha' : isSupervisor ? 'Área do Supervisor' : mode === 'login' ? 'Seja Bem-Vindo Aluno!' : 'Criar conta'}
-            </h1>
-            <p className="text-sm mt-1 opacity-80">
-              {mode === 'forgot'
-                ? 'Informe seu e-mail para receber o link de redefinição.'
-                : isSupervisor
-                ? 'Acesso restrito para avaliação de certificados.'
-                : mode === 'login'
-                  ? 'Registre seus certificados e confira suas horas complementares.'
-                  : 'Crie sua conta para começar a registrar horas.'}
-            </p>
-          </div>
-
-          {/* ── Body ── */}
-          <div className="px-6 pt-5 pb-6">
-
-            {/* Entrar / Criar conta tabs — somente área do aluno */}
+    <AuthShell
+      tone={isSupervisor ? 'supervisor' : 'student'}
+      title={mode === 'forgot' ? 'Redefinir senha' : isSupervisor ? 'Entrar como supervisor' : mode === 'login' ? 'Entrar' : 'Criar conta'}
+      subtitle={mode === 'forgot'
+        ? 'Informe seu e-mail para receber o link de redefinição.'
+        : isSupervisor
+          ? 'Acesso restrito a quem avalia certificados.'
+          : mode === 'login'
+            ? 'Use o e-mail e a senha da sua conta.'
+            : 'Leva um minuto. Depois é só enviar seus certificados.'}
+      onBack={isSupervisor ? () => switchArea('student') : undefined}
+    >
+            {/* Entrar / Criar conta - somente área do aluno */}
             {!isSupervisor && mode !== 'forgot' && (
-              <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-5">
-                <button
-                  type="button"
-                  onClick={() => goTo('login')}
-                  className={['flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-semibold transition-colors',
-                    mode === 'login' ? 'bg-white text-vinho-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'].join(' ')}
-                >
-                  <LogIn size={14} />
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goTo('register')}
-                  className={['flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-semibold transition-colors',
-                    mode === 'register' ? 'bg-white text-vinho-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'].join(' ')}
-                >
-                  <UserPlus size={14} />
-                  Criar conta
-                </button>
+              <div className="flex gap-6 border-b border-gray-200 mb-6">
+                {(['login', 'register'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => goTo(tab)}
+                    aria-current={mode === tab ? 'page' : undefined}
+                    className={['-mb-px pb-2.5 border-b-2 text-sm font-semibold transition-colors',
+                      mode === tab ? 'border-vinho-600 text-vinho-700' : 'border-transparent text-gray-500 hover:text-gray-700'].join(' ')}
+                  >
+                    {tab === 'login' ? 'Entrar' : 'Criar conta'}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -425,20 +377,92 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
 
             {/* Link para área do supervisor — somente visível na tela do aluno */}
             {!isSupervisor && (
-              <div className="mt-5 pt-4 border-t border-gray-100 flex justify-center">
+              <div className="mt-8">
                 <button
                   type="button"
                   onClick={() => switchArea('supervisor')}
-                  className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-green-700 font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 font-medium transition-colors"
                 >
-                  <ShieldCheck size={13} />
-                  Acessar área do supervisor
+                  <ShieldCheck size={15} />
+                  Sou supervisor
                 </button>
               </div>
             )}
-          </div>
+    </AuthShell>
+  )
+}
+
+// Passos reais do uso pelo aluno, na ordem em que acontecem
+const STEPS = [
+  'Envie o certificado em PDF ou imagem.',
+  'O sistema sugere a categoria e as horas.',
+  'Acompanhe quanto falta para concluir.',
+]
+
+function AuthShell({
+  tone,
+  title,
+  subtitle,
+  onBack,
+  children,
+}: {
+  tone: 'student' | 'supervisor'
+  title: string
+  subtitle: string
+  onBack?: () => void
+  children: React.ReactNode
+}) {
+  const isSupervisor = tone === 'supervisor'
+
+  return (
+    <div className="min-h-screen bg-white lg:grid lg:grid-cols-[5fr_7fr]">
+      {/* Painel da instituicao: faixa no celular, coluna inteira no desktop */}
+      <aside className={[
+        // Fixo na altura da tela: formulario longo rola sozinho e o texto nao some
+        'flex flex-col px-6 py-6 text-white lg:sticky lg:top-0 lg:h-screen lg:px-12 lg:py-12',
+        isSupervisor ? 'bg-green-900' : 'bg-vinho-600',
+      ].join(' ')}>
+        <p className="text-sm font-medium text-white/70">Universidade de Vassouras</p>
+
+        <div className="mt-3 lg:my-auto">
+          <p className="text-2xl font-semibold leading-[1.05] tracking-tight lg:text-5xl">
+            {isSupervisor ? <>Avaliação de<br />certificados</> : <>Horas<br className="hidden lg:block" /> complementares</>}
+          </p>
+
+          {isSupervisor ? (
+            <p className="mt-6 hidden max-w-xs text-sm leading-6 text-white/75 lg:block">
+              Confira os certificados enviados pelos alunos, aprove ou devolva com um comentário.
+            </p>
+          ) : (
+            <ol className="mt-8 hidden space-y-3 lg:block">
+              {STEPS.map((step, index) => (
+                <li key={step} className="flex items-baseline gap-3 text-sm leading-6 text-white/85">
+                  <span className="w-4 flex-shrink-0 font-semibold tabular-nums text-white/50">{index + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
-      </div>
+      </aside>
+
+      <main className="flex items-center justify-center px-6 py-10 lg:py-12">
+        <div className="w-full max-w-sm">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+            >
+              <ArrowLeft size={15} />
+              Voltar para área do aluno
+            </button>
+          )}
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{title}</h1>
+          <p className="mt-1.5 mb-7 text-sm leading-6 text-gray-500">{subtitle}</p>
+          {children}
+        </div>
+      </main>
     </div>
   )
 }
