@@ -5,8 +5,7 @@ import { StoreType } from '@/hooks/useStore'
 import { Student } from '@/lib/types'
 import { exportStudentExcelReport } from '@/lib/excelReport'
 import { COURSES, ENGINEERING_TYPES } from '@/lib/data'
-import { Download, FileSpreadsheet, LogOut, RotateCcw, Save, RefreshCw, Cloud, GraduationCap } from 'lucide-react'
-import LogoutConfirmModal from '@/components/LogoutConfirmModal'
+import { FileSpreadsheet, RotateCcw, Save, GraduationCap } from 'lucide-react'
 
 interface SettingsProps {
   store: StoreType
@@ -27,7 +26,6 @@ export default function Settings({ store }: SettingsProps) {
     initialCourseValid ? initialStudent : { ...initialStudent, course: 'Engenharia', engineeringType: '' }
   )
   const [message, setMessage] = useState<{ type: 'ok' | 'warn'; text: string } | null>(null)
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
   useEffect(() => {
     const s = store.state.student
     const validCourse = COURSES.some(c => c.id === s.course)
@@ -43,22 +41,6 @@ export default function Settings({ store }: SettingsProps) {
           ? formatCpf(value)
           : value,
     }))
-  }
-
-  const pullRemote = async () => {
-    const ok = await store.pullFromBackend()
-    setMessage(ok
-      ? { type: 'ok', text: 'Dados carregados do Supabase.' }
-      : { type: 'warn', text: store.apiError || 'Não foi possível carregar os dados.' }
-    )
-  }
-
-  const pushRemote = async () => {
-    const ok = await store.syncToBackend()
-    setMessage(ok
-      ? { type: 'ok', text: 'Perfil sincronizado com o Supabase.' }
-      : { type: 'warn', text: store.apiError || 'Não foi possível sincronizar.' }
-    )
   }
 
   const saveStudent = async () => {
@@ -88,8 +70,6 @@ export default function Settings({ store }: SettingsProps) {
       setMessage({ type: 'ok', text: 'Dados locais removidos.' })
     }
   }
-
-  const handleLogout = () => setShowLogoutModal(true)
 
   return (
     <div className="space-y-5">
@@ -201,55 +181,6 @@ export default function Settings({ store }: SettingsProps) {
           </button>
         </div>
       </section>
-
-      {/* ── Conta Supabase ──────────────────────────────────────── */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Cloud size={15} className="text-vinho-500" />
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Conta</div>
-        </div>
-
-        {store.authUser ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">{store.authUser.email}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Status: <span className={store.apiStatus === 'online' ? 'text-emerald-600' : store.apiStatus === 'syncing' ? 'text-amber-600' : 'text-red-500'}>
-                  {store.apiStatus === 'online' ? 'Conectado' : store.apiStatus === 'syncing' ? 'Sincronizando…' : store.apiStatus === 'error' ? 'Erro' : 'Local'}
-                </span>
-              </p>
-              {store.apiError && <p className="text-xs text-red-500 mt-1">{store.apiError}</p>}
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={pullRemote}
-                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-                <Download size={14} /> Baixar
-              </button>
-              <button onClick={pushRemote}
-                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg bg-vinho-600 hover:bg-vinho-700 text-white text-sm font-semibold transition-colors">
-                <RefreshCw size={14} /> Sincronizar
-              </button>
-              <button onClick={handleLogout}
-                className="inline-flex items-center gap-2 min-h-10 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-                <LogOut size={14} /> Sair
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">Não conectado. Faça login para sincronizar seus dados.</p>
-        )}
-      </section>
-
-      <LogoutConfirmModal
-        open={showLogoutModal}
-        email={store.authUser?.email}
-        context="student"
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => {
-          setShowLogoutModal(false)
-          store.logout()
-        }}
-      />
     </div>
   )
 }
