@@ -87,9 +87,9 @@ export default function Navbar({ activeTab, onTabChange, displayName, onLogout }
         ].join(' ')}
       >
         <div className="flex flex-col h-full gap-1 px-2 py-3">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 px-2 pb-3 mb-2 border-b border-white/10">
-            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+          {/* Logo, nome e botao de recolher. Recolhido no desktop: sobra so o botao */}
+          <div className={`flex items-center gap-2.5 px-2 pb-3 mb-2 border-b border-white/10 ${open ? '' : 'sm:justify-center sm:px-0'}`}>
+            <div className={`w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0 ${label}`}>
               <GraduationCap size={17} className="text-white" />
             </div>
             <div className={`${label} min-w-0 flex-1`}>
@@ -105,6 +105,16 @@ export default function Navbar({ activeTab, onTabChange, displayName, onLogout }
               className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10"
             >
               <X size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              aria-label={open ? 'Recolher menu' : 'Abrir menu'}
+              title={open ? 'Recolher menu' : 'Abrir menu'}
+              className="hidden sm:flex w-9 h-9 flex-shrink-0 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors duration-150"
+            >
+              {open ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
             </button>
           </div>
 
@@ -138,19 +148,6 @@ export default function Navbar({ activeTab, onTabChange, displayName, onLogout }
           >
             <LogOut size={17} className="flex-shrink-0" />
             <span className={label}>Sair</span>
-          </button>
-
-          {/* Abrir / recolher (so desktop) */}
-          <button
-            type="button"
-            onClick={toggle}
-            aria-expanded={open}
-            aria-label={open ? 'Recolher menu' : 'Abrir menu'}
-            title={open ? 'Recolher menu' : 'Abrir menu'}
-            className={['hidden sm:flex', item, idle, open ? '' : 'justify-center'].join(' ')}
-          >
-            {open ? <PanelLeftClose size={17} className="flex-shrink-0" /> : <PanelLeftOpen size={17} className="flex-shrink-0" />}
-            <span className={label}>Recolher</span>
           </button>
         </div>
       </nav>
