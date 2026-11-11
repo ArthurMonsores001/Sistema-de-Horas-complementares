@@ -1,4 +1,27 @@
-import { Certificate } from './types'
+import { Certificate, StudentProfile } from './types'
+
+export interface SharedFileOwner {
+  name: string
+  registration: string
+}
+
+/**
+ * Arquivos enviados por mais de um aluno: hash -> quem enviou.
+ * Só entram hashes presentes em 2 ou mais perfis. Aviso para o supervisor, não bloqueio.
+ */
+export function findSharedFiles(profiles: StudentProfile[]): Map<string, SharedFileOwner[]> {
+  const owners = new Map<string, SharedFileOwner[]>()
+  for (const profile of profiles) {
+    const hashes = new Set(profile.certificates.map(c => c.attachment?.fileHash).filter(Boolean) as string[])
+    hashes.forEach(hash => {
+      const list = owners.get(hash) ?? []
+      list.push({ name: profile.student.name, registration: profile.registration })
+      owners.set(hash, list)
+    })
+  }
+  owners.forEach((list, hash) => { if (list.length < 2) owners.delete(hash) })
+  return owners
+}
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean
