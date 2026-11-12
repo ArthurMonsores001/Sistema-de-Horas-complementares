@@ -53,7 +53,11 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.linkExpired])
 
-  const switchArea = (next: 'student' | 'supervisor') => {
+  useEffect(() => {
+    if (store.emailConfirmed) setInfo('E-mail confirmado. Entre com seu e-mail e senha.')
+  }, [store.emailConfirmed])
+
+  const switchArea =(next: 'student' | 'supervisor') => {
     setArea(next)
     setMode('login')
     setMessage('')
