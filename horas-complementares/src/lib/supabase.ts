@@ -7,6 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const urlHash = typeof window !== 'undefined' ? window.location.hash : ''
 export const openedRecoveryLink = urlHash.includes('type=recovery')
 export const openedExpiredLink = urlHash.includes('error_code=otp_expired')
+export const openedSignupLink = urlHash.includes('type=signup')
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

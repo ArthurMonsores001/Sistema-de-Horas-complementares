@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AppState, Certificate, Student, StudentProfile, UserRole } from '@/lib/types'
 import { ACTIVITIES } from '@/lib/data'
-import { supabase, openedRecoveryLink, openedExpiredLink } from '@/lib/supabase'
+import { supabase, openedRecoveryLink, openedExpiredLink, openedSignupLink } from '@/lib/supabase'
 import { checkDuplicate } from '@/lib/duplicateChecker'
 import {
   AuthUser,
@@ -17,6 +17,7 @@ import {
   findCertificateByFileHash,
   uploadAttachment,
   registerAttachmentHash,
+  clearPendingProfile,
   getAttachmentUrl,
   submitCertificateForReview,
   submitMultipleCertificatesForReview,
@@ -129,6 +130,7 @@ export function useStore() {
   const [hydrated, setHydrated] = useState(false)
   const [recovering, setRecovering] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
+  const [emailConfirmed, setEmailConfirmed] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
 
   // ── Hydration: local storage + Supabase session ───────────────
@@ -154,7 +156,15 @@ export function useStore() {
       } catch { /* ignore */ }
 
       // Check Supabase session
-      const user = await getSession()
+      let user = await getSession()
+
+      // Link de confirmacao de cadastro: confirma o e-mail mas nao entra direto.
+      // Encerra a sessao aberta pelo link e manda para a tela de login.
+      if (openedSignupLink && user) {
+        await signOut()
+        user = null
+        setEmailConfirmed(true)
+      }
 
       // Tokens do link de e-mail ja foram consumidos: tira o hash da barra de enderecos
       try {
@@ -208,7 +218,14 @@ export function useStore() {
     if (!u) return
     try {
       setApiStatus('syncing')
-      const remote = await fetchAllProfiles(u.id)
+      let remote = await fetchAllProfiles(u.id)
+      // Conta nova sem perfil: grava agora os dados informados no cadastro.
+      // Com confirmacao de e-mail, este e o primeiro momento em que ha sessao para o RLS aceitar.
+      if (remote.length === 0 && u.pendingProfile) {
+        await upsertProfile(u.pendingProfile, u.id)
+        await clearPendingProfile()
+        remote = await fetchAllProfiles(u.id)
+      }
       const map: Record<string, StudentProfile> = {}
       for (const p of remote) map[normalizeReg(p.registration)] = p
 
@@ -793,6 +810,7 @@ export function useStore() {
     hydrated,
     recovering,
     linkExpired,
+    emailConfirmed,
     loadFailed,
     retryLoad,
 

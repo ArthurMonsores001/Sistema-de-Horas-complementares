@@ -5,6 +5,7 @@
  */
 import { supabase, DbProfile, DbCertificate, DbUserRole } from './supabase'
 import { Certificate, CertificateStatus, Student, StudentProfile, UserRole } from './types'
+import { COURSES, ENGINEERING_TYPES } from './data'
 
 const PROFILE_SELECT = 'id,user_id,registration,name,cpf,course,engineering_type,total_required,updated_at'
 // Supervisor não precisa ver CPF dos alunos — menor superfície de exposição
@@ -17,6 +18,8 @@ const LOAD_TIMEOUT_MS = 15000
 export interface AuthUser {
   id: string
   email: string
+  /** Dados informados no cadastro que ainda nao viraram perfil */
+  pendingProfile?: Student
 }
 
 const AUTH_ERRORS: Record<string, string> = {
@@ -37,20 +40,59 @@ function authMessage(error: { code?: string; message?: string; status?: number }
   return fallback
 }
 
-export async function signUp(email: string, password: string): Promise<AuthUser> {
+// Perfil informado no cadastro, guardado na conta ate o primeiro login com sessao.
+// Vem do metadata do usuario, que ele mesmo pode editar: valida antes de usar.
+function pendingProfileOf(metadata: Record<string, unknown> | undefined): Student | undefined {
+  const raw = metadata?.pending_profile
+  if (!raw || typeof raw !== 'object') return undefined
+  const p = raw as Record<string, unknown>
+  const text = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '')
+
+  const name = text(p.name, 120)
+  const registration = text(p.registration, 30)
+  const course = COURSES.find(c => c.available && c.id === p.course)?.id
+  if (!name || !registration || !course) return undefined
+
+  const engineeringType = course === 'Engenharia'
+    ? ENGINEERING_TYPES.find(t => t === p.engineeringType)
+    : undefined
+  return { name, registration, cpf: '', course, engineeringType, totalRequired: 180 }
+}
+
+function toAuthUser(user: { id: string; email?: string; user_metadata?: Record<string, unknown> }): AuthUser {
+  return { id: user.id, email: user.email ?? '', pendingProfile: pendingProfileOf(user.user_metadata) }
+}
+
+/**
+ * Cria a conta ja com os dados do perfil. Com confirmacao de e-mail ligada nao ha
+ * sessao ainda (needsConfirmation): o perfil e gravado no primeiro login.
+ */
+export async function signUp(
+  email: string,
+  password: string,
+  profile: Pick<Student, 'name' | 'registration' | 'course' | 'engineeringType'>,
+): Promise<{ user: AuthUser; needsConfirmation: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${window.location.origin}/` },
+    options: {
+      emailRedirectTo: `${window.location.origin}/`,
+      data: { pending_profile: profile },
+    },
   })
   if (error || !data.user) throw new Error(authMessage(error, 'Falha ao criar conta.'))
-  return { id: data.user.id, email: data.user.email ?? '' }
+  return { user: toAuthUser(data.user), needsConfirmation: !data.session }
+}
+
+/** Remove da conta os dados de cadastro que ja viraram perfil. */
+export async function clearPendingProfile(): Promise<void> {
+  await supabase.auth.updateUser({ data: { pending_profile: null } })
 }
 
 export async function signIn(email: string, password: string): Promise<AuthUser> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error || !data.user) throw new Error(authMessage(error, 'Não foi possível entrar. Tente novamente.'))
-  return { id: data.user.id, email: data.user.email ?? '' }
+  return toAuthUser(data.user)
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -83,7 +125,7 @@ export async function getSession(): Promise<AuthUser | null> {
       if (status === 401 || status === 403) await supabase.auth.signOut({ scope: 'local' })
       return null
     }
-    return { id: user.id, email: user.email ?? '' }
+    return toAuthUser(user)
   } catch {
     // Chamada concorrente (ex: StrictMode) pode ter o lock de auth "roubado"
     // por outra chamada mais recente; trate como sessão indisponível nesta tentativa.
