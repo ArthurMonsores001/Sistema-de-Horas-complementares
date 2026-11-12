@@ -1,6 +1,6 @@
-# Horas Complementares
+# Sistema de Horas Complementares
 
-Sistema web para gerenciamento de horas complementares de estudantes universitários, desenvolvido com Next.js e Supabase.
+Sistema web para gerenciamento de horas complementares de estudantes universitários da Universidade de Vassouras, desenvolvido com Next.js e Supabase.
 
 ## Objetivo
 
@@ -25,18 +25,3 @@ Facilitar o controle e acompanhamento das horas complementares exigidas pela gra
 - [PDF.js](https://mozilla.github.io/pdf.js/) — extração de texto de certificados em PDF
 - [xlsx](https://github.com/SheetJS/sheetjs) — exportação para Excel
 - [Tailwind CSS](https://tailwindcss.com/) — estilização
-
-## Como rodar localmente
-
-```bash
-npm install
-npm run dev
-```
-
-Acesse `http://localhost:3000`.
-
-> Requer variáveis de ambiente do Supabase configuradas em `.env.local`:
-> ```
-> NEXT_PUBLIC_SUPABASE_URL=...
-> NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-> ```
