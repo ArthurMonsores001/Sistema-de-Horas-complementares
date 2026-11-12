@@ -1,10 +1,10 @@
 # Horas Complementares
 
-Sistema web para gerenciamento de horas complementares de estudantes universitários, desenvolvido com Next.js e Supabase.
+Sistema web para gerenciamento de horas complementares de estudantes universitários da Universidade de Vassouras, desenvolvido com Next.js e Supabase.
 
 ## Objetivo
 
-Facilitar o controle e acompanhamento das horas complementares exigidas pela grade curricular, permitindo que cada estudante registre seus certificados, acompanhe o progresso por categoria e exporte relatórios. No momento está sendo desenvolvido pro publico da Engenharia de Software da Universidade de Vassouras
+Facilitar o controle e acompanhamento das horas complementares exigidas pela grade curricular, permitindo que cada estudante registre seus certificados, acompanhe o progresso por categoria e exporte relatórios. No momento está sendo desenvolvido pro publico da Engenharia de Software da Universidade de Vassouras com objetivo de expansão.
 
 ## O que o sistema faz
 
@@ -18,6 +18,7 @@ Facilitar o controle e acompanhamento das horas complementares exigidas pela gra
 - **Dashboard** — visão geral do progresso total e por categoria, com indicação de horas efetivas e excedentes por atividade.
 - **Sincronização** — dados salvos no Supabase, isolados por conta de usuário. Suporte a backup e restauração local (JSON) e exportação para Excel.
 
+- **Perfil Supervisor** - Perfil de coordendor onde ele gerencia e aprova os certificado dos alunos e envia para ele uma resposta de confirmação
 ## Tecnologias
 
 - [Next.js 14](https://nextjs.org/) — framework React com App Router
@@ -26,17 +27,3 @@ Facilitar o controle e acompanhamento das horas complementares exigidas pela gra
 - [xlsx](https://github.com/SheetJS/sheetjs) — exportação para Excel
 - [Tailwind CSS](https://tailwindcss.com/) — estilização
 
-## Como rodar localmente
-
-```bash
-npm install
-npm run dev
-```
-
-Acesse `http://localhost:3000`.
-
-> Requer variáveis de ambiente do Supabase configuradas em `.env.local`:
-> ```
-> NEXT_PUBLIC_SUPABASE_URL=...
-> NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-> ```
