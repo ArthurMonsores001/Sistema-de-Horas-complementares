@@ -142,8 +142,27 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         return
       }
 
-      const user = mode === 'login' ? await signIn(email, password) : await signUp(email, password)
-      if (mode === 'register') signUpSucceeded = true
+      let user
+      if (mode === 'login') {
+        user = await signIn(email, password)
+      } else {
+        const created = await signUp(email, password, {
+          name: name.trim(),
+          registration: registration.trim(),
+          course: course.trim(),
+          engineeringType: course === 'Engenharia' ? engineeringType : undefined,
+        })
+        // Confirmacao de e-mail ligada: ainda nao ha sessao. Os dados ficam na conta
+        // e viram perfil no primeiro login.
+        if (created.needsConfirmation) {
+          goTo('login')
+          setInfo('Conta criada. Enviamos um link de confirmação para o seu e-mail. Confirme e depois entre. Confira também o spam.')
+          return
+        }
+        user = created.user
+        signUpSucceeded = true
+      }
+      // O perfil informado no cadastro e gravado dentro de onAuthSuccess
       const role = await store.onAuthSuccess(user)
 
       // Dados nao carregaram: o app mostra a tela de erro com "Tentar de novo"
@@ -155,20 +174,6 @@ export default function AuthGate({ store, children, supervisorArea }: AuthGatePr
         return
       }
 
-      if (mode === 'register' && role !== 'supervisor') {
-        const saved = await store.saveProfile({
-          name: name.trim(),
-          registration: registration.trim(),
-          cpf: '',
-          course: course.trim(),
-          engineeringType: course === 'Engenharia' ? engineeringType : undefined,
-          totalRequired: 180,
-        }, user)
-
-        if (!saved) {
-          throw new Error('A conta foi criada, mas o perfil não foi salvo. Verifique as políticas RLS da tabela student_profiles.')
-        }
-      }
     } catch (error) {
       if (signUpSucceeded) await store.logout()
       setMessage(error instanceof Error ? error.message : 'Não foi possível entrar.')

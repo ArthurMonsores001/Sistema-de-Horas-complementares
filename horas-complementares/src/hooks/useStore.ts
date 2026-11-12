@@ -17,6 +17,7 @@ import {
   findCertificateByFileHash,
   uploadAttachment,
   registerAttachmentHash,
+  clearPendingProfile,
   getAttachmentUrl,
   submitCertificateForReview,
   submitMultipleCertificatesForReview,
@@ -208,7 +209,14 @@ export function useStore() {
     if (!u) return
     try {
       setApiStatus('syncing')
-      const remote = await fetchAllProfiles(u.id)
+      let remote = await fetchAllProfiles(u.id)
+      // Conta nova sem perfil: grava agora os dados informados no cadastro.
+      // Com confirmacao de e-mail, este e o primeiro momento em que ha sessao para o RLS aceitar.
+      if (remote.length === 0 && u.pendingProfile) {
+        await upsertProfile(u.pendingProfile, u.id)
+        await clearPendingProfile()
+        remote = await fetchAllProfiles(u.id)
+      }
       const map: Record<string, StudentProfile> = {}
       for (const p of remote) map[normalizeReg(p.registration)] = p
 
