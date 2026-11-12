@@ -231,7 +231,7 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
         const nextAttachment = { name: file.name, type: file.type || `image/${ext}`, size: file.size, fileHash, dataUrl }
         setAttachment(nextAttachment)
         if (!checkDuplicateAttachment(nextAttachment)) {
-          setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo.' })
+          setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo. Para validação da imagem o usuário deve preencher manualmente os dados.' })
         }
       } catch {
         setIsDuplicateFile(false)
