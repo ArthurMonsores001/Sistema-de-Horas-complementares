@@ -6,6 +6,7 @@ import { StoreType } from '@/hooks/useStore'
 import { CertificateAnalysis, CertificateAttachment } from '@/lib/types'
 import { analyzeCertificateText } from '@/lib/certificateAnalyzer'
 import { checkDuplicate, getFileHash } from '@/lib/duplicateChecker'
+import { MAX_ATTACHMENT_BYTES, MAX_IMAGE_INPUT_BYTES, compressImage, formatMB } from '@/lib/attachmentLimits'
 import { Upload, Sparkles, CheckCircle, AlertTriangle, X, FileText, Image, Table2 } from 'lucide-react'
 import OfficialModelModal from '@/components/OfficialModelModal'
 
@@ -170,8 +171,9 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     return false
   }, [form.activityId, form.date, form.description, form.hours, form.location, store.state])
 
-  const handleFile = useCallback(async (file: File) => {
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const handleFile = useCallback(async (rawFile: File) => {
+    const file = rawFile
+    const ext = rawFile.name.split('.').pop()?.toLowerCase() ?? ''
     setStatus({ type: 'loading', msg: 'Processando arquivo...' })
     setExtractedText(null)
     setPreviewSrc(null)
@@ -180,6 +182,11 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
     setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null })
 
     if (ext === 'pdf') {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        setIsDuplicateFile(false)
+        setStatus({ type: 'warn', msg: `PDF com ${formatMB(file.size)}. O limite é ${formatMB(MAX_ATTACHMENT_BYTES)}. Exporte o PDF novamente com tamanho menor.` })
+        return
+      }
       try {
         const dataUrl = await fileToDataUrl(file)
         const fileHash = await getFileHash(file)
@@ -225,10 +232,22 @@ export default function AddCertificate({ store, onSuccess }: AddCertificateProps
         setStatus({ type: 'warn', msg: 'Não foi possível extrair o texto. Preencha os dados manualmente.' })
       }
     } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+      if (rawFile.size > MAX_IMAGE_INPUT_BYTES) {
+        setIsDuplicateFile(false)
+        setStatus({ type: 'warn', msg: `Imagem com ${formatMB(rawFile.size)}. O limite é ${formatMB(MAX_IMAGE_INPUT_BYTES)}. Escolha uma imagem menor.` })
+        return
+      }
       try {
-        const [dataUrl, fileHash] = await Promise.all([fileToDataUrl(file), getFileHash(file)])
+        // Hash e upload usam o arquivo comprimido, o mesmo que o servidor vai hashear
+        const prepared = await compressImage(rawFile)
+        if (prepared.size > MAX_ATTACHMENT_BYTES) {
+          setIsDuplicateFile(false)
+          setStatus({ type: 'warn', msg: `Imagem ainda com ${formatMB(prepared.size)} após compressão. O limite é ${formatMB(MAX_ATTACHMENT_BYTES)}. Escolha outra imagem.` })
+          return
+        }
+        const [dataUrl, fileHash] = await Promise.all([fileToDataUrl(prepared), getFileHash(prepared)])
         setPreviewSrc(dataUrl)
-        const nextAttachment = { name: file.name, type: file.type || `image/${ext}`, size: file.size, fileHash, dataUrl }
+        const nextAttachment = { name: prepared.name, type: prepared.type || `image/${ext}`, size: prepared.size, fileHash, dataUrl }
         setAttachment(nextAttachment)
         if (!checkDuplicateAttachment(nextAttachment)) {
           setStatus({ type: 'ok', msg: 'Imagem carregada. Preencha os dados abaixo. Para validação da imagem o usuário deve preencher manualmente os dados.' })

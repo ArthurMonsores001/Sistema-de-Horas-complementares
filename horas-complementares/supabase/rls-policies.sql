@@ -104,7 +104,9 @@ using (
 
 -- Storage: files are stored in certificates/{auth.uid()}/...
 update storage.buckets
-set public = false
+set public = false,
+    file_size_limit = 5242880, -- 5 MB, igual a MAX_ATTACHMENT_BYTES em src/lib/attachmentLimits.ts
+    allowed_mime_types = array['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
 where id = 'certificates';
 
 drop policy if exists "certificate_files_select_own" on storage.objects;
