@@ -1,9 +1,8 @@
 name: supabase-keepalive
 
-# Evita pausa do projeto Supabase (plano free pausa apos 7 dias sem atividade)
 on:
   schedule:
-    - cron: "0 12 */3 * *"
+    - cron: "23 */6 * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -17,6 +16,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
         run: |
-          curl -sf "$SUPABASE_URL/rest/v1/certificates?select=id&limit=1" \
+          curl -sf --retry 3 --retry-delay 20 --retry-all-errors "$SUPABASE_URL/rest/v1/certificates?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY"
