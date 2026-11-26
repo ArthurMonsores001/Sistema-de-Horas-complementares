@@ -10,12 +10,16 @@ permissions: {}
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Ping Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
         run: |
-          curl -sf --retry 3 --retry-delay 20 --retry-all-errors "$SUPABASE_URL/rest/v1/certificates?select=id&limit=1" \
+          : "${SUPABASE_URL:?SUPABASE_URL vazio}" "${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY vazio}"
+          curl -sSf -o /dev/null --max-time 30 \
+            --retry 3 --retry-delay 20 --retry-all-errors \
+            "$SUPABASE_URL/rest/v1/certificates?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY"
